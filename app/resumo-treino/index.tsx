@@ -146,6 +146,16 @@ export default function ResumoTreinoScreen() {
         })}
       </View>
 
+      <TouchableOpacity
+        style={styles.botaoGaleria}
+        onPress={() => router.push({ pathname: '/compartilhar', params: { treinoNome: treinoNome || '', duracao: duracao || '0' } })}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="images-outline" size={20} color={COR_PRIMARIA} />
+        <Text style={styles.botaoGaleriaTexto}>Criar Card Personalizado</Text>
+        <Ionicons name="chevron-forward" size={18} color={COR_PRIMARIA} />
+      </TouchableOpacity>
+
       <View style={styles.branding}>
         <Ionicons name="fitness" size={18} color={COR_PRIMARIA} />
         <Text style={styles.brandingTexto}>TREINO MAIS</Text>
@@ -252,6 +262,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COR_PRIMARIA,
     fontWeight: 'bold',
+  },
+  botaoGaleria: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: COR_CARD, borderRadius: 14, padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: COR_PRIMARIA + '40',
+  },
+  botaoGaleriaTexto: {
+    fontSize: 14, color: COR_PRIMARIA, fontWeight: '600', flex: 1, textAlign: 'center',
   },
   branding: {
     flexDirection: 'row',

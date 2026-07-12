@@ -129,6 +129,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="compartilhar/index"
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: COR_FUNDO },
+              headerTintColor: '#fff',
+              headerTitle: 'Compartilhar',
+            }}
+          />
+          <Stack.Screen
             name="selecionar-exercicio/index"
             options={{
               headerShown: true,
