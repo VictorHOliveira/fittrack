@@ -7,6 +7,7 @@ import {
   listarExerciciosNoHistorico,
   getExercicioNome,
 } from './stats';
+import { carregarExerciciosPersonalizados } from '../services/firestoreService';
 
 export async function compartilharRelatorio(
   historico: TreinoCompleto[],
@@ -14,12 +15,16 @@ export async function compartilharRelatorio(
 ): Promise<void> {
   const resumo = calcularResumoPeriodo(historico, 30);
 
+  const customExercises = await carregarExerciciosPersonalizados();
+  const customMap: Record<string, string> = {};
+  customExercises.forEach(e => { customMap[e.id] = e.nome; });
+
   let relatorio = '📊 Relatório - Treino Mais\n';
   relatorio += `📅 Últimos 30 dias\n\n`;
 
   if (perfil) {
     relatorio += `👤 ${perfil.nome}\n`;
-    relatorio += `🎯 Nível: ${perfil.nivel} | Objetivo: ${perfil.objetivo}\n\n`;
+    relatorio += `🎯 Nível: ${perfil.nivel} | Objetivo: ${perfil.objetivo?.join(', ')}\n\n`;
   }
 
   relatorio += '📈 Resumo:\n';
@@ -45,7 +50,7 @@ export async function compartilharRelatorio(
           const primeira = evolucao.cargas[0];
           const ultima = evolucao.cargas[evolucao.cargas.length - 1];
           const variacao = ((ultima - primeira) / primeira * 100).toFixed(0);
-          relatorio += `• ${getExercicioNome(exId)}: ${primeira}kg → ${ultima}kg (+${variacao}%)\n`;
+          relatorio += `• ${getExercicioNome(exId, customMap)}: ${primeira}kg → ${ultima}kg (+${variacao}%)\n`;
         }
       }
     }

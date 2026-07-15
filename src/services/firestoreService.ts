@@ -7,7 +7,7 @@ function auth() {
 }
 import {
   Treino, TreinoCompleto, PerfilUsuario, RecordesMap, RecordeExercicio,
-  MedidaCorporal, ConfigAgua, RegistroAguaDiario, CopoAgua, CardioEntry,
+  MedidaCorporal, ConfigAgua, RegistroAguaDiario, CopoAgua, CardioEntry, Exercicio,
 } from '../types';
 import {
   carregarTreinos as loadTreinosLocal,
@@ -30,7 +30,10 @@ import {
   carregarCardio as loadCardioLocal,
   salvarCardioEntry as saveCardioEntryLocal,
   deletarCardioEntry as deleteCardioEntryLocal,
+  carregarExerciciosPersonalizados as loadExerciciosCustomLocal,
+  salvarExerciciosPersonalizados as saveExerciciosCustomLocal,
   gerarId,
+  limparStorage,
 } from '../utils/storage';
 
 function getUid(): string | null {
@@ -297,5 +300,66 @@ export async function deletarCardioEntry(id: string): Promise<void> {
     await userRef().collection('cardio').doc(id).delete();
   } catch (e) {
     console.warn('Erro ao deletar cardio no Firestore:', e);
+  }
+}
+
+// ─── Exercícios Personalizados ───
+
+export const carregarExerciciosPersonalizadosLocal = loadExerciciosCustomLocal;
+
+export async function carregarExerciciosPersonalizados(): Promise<Exercicio[]> {
+  try {
+    const doc = await userRef().get();
+    const dados = doc.data()?.customExercises as Exercicio[] | undefined;
+    if (dados && dados.length > 0) {
+      await saveExerciciosCustomLocal(dados);
+      return dados;
+    }
+    const locais = await loadExerciciosCustomLocal();
+    if (locais.length > 0) {
+      await userRef().set({ customExercises: locais }, { merge: true });
+      return locais;
+    }
+    return [];
+  } catch {
+    return loadExerciciosCustomLocal();
+  }
+}
+
+export async function salvarExerciciosPersonalizados(exercicios: Exercicio[]): Promise<void> {
+  await saveExerciciosCustomLocal(exercicios);
+  try {
+    await userRef().set({ customExercises: exercicios }, { merge: true });
+  } catch (e) {
+    console.warn('Erro ao salvar exercícios personalizados no Firestore:', e);
+  }
+}
+
+export async function limparTodosDados(): Promise<void> {
+  const uid = getUid();
+  if (uid) {
+    const SUBCOLLECTIONS = ['treinos', 'historico', 'recordes', 'medidas', 'aguaRegistros', 'cardio'];
+    const userDoc = getDb().collection(USERS_COLLECTION).doc(uid);
+    for (const sub of SUBCOLLECTIONS) {
+      try {
+        const snap = await userDoc.collection(sub).get();
+        const batch = getDb().batch();
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      } catch (e) {
+        console.warn(`Erro ao limpar subcoleção ${sub}:`, e);
+      }
+    }
+    try {
+      await userDoc.delete();
+    } catch (e) {
+      console.warn('Erro ao deletar documento do usuário:', e);
+    }
+  }
+  await limparStorage();
+  try {
+    await auth().signOut();
+  } catch (e) {
+    console.warn('Erro ao fazer signOut:', e);
   }
 }

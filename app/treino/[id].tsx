@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos } from '../../src/hooks/useTreinos';
-import { Treino } from '../../src/types';
+import { Treino, Exercicio } from '../../src/types';
+import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
 import exerciciosData from '../../src/data/exercicios.json';
 import ExercicioGif from '../../src/components/ExercicioGif';
 
@@ -17,6 +18,13 @@ export default function TreinoDetalheScreen() {
   const router = useRouter();
   const { treinos } = useTreinos();
   const [treino, setTreino] = useState<Treino | null>(null);
+  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarExerciciosPersonalizados().then(setExerciciosCustom);
+    }, [])
+  );
 
   useEffect(() => {
     const t = treinos.find(t => t.id === id);
@@ -36,7 +44,9 @@ export default function TreinoDetalheScreen() {
       <View style={styles.info}>
         <Text style={styles.titulo}>{treino.nome}</Text>
         {treino.descricao ? <Text style={styles.descricao}>{treino.descricao}</Text> : null}
-        {treino.diaSemana ? <Text style={styles.dia}>{treino.diaSemana}</Text> : null}
+        {treino.diaSemana && (Array.isArray(treino.diaSemana) ? treino.diaSemana.length > 0 : true) ? (
+          <Text style={styles.dia}>{Array.isArray(treino.diaSemana) ? treino.diaSemana.join(', ') : treino.diaSemana}</Text>
+        ) : null}
         <Text style={styles.totalExercicios}>
           {treino.exercicios.length} exercício(s) • {treino.exercicios.reduce((acc, e) => acc + e.series.length, 0)} séries totais
         </Text>
@@ -49,7 +59,7 @@ export default function TreinoDetalheScreen() {
         keyExtractor={(_, i) => i.toString()}
         contentContainerStyle={styles.lista}
         renderItem={({ item }) => {
-          const info = exerciciosData.find(e => e.id === item.exercicioId);
+          const info = [...exerciciosData, ...exerciciosCustom].find(e => e.id === item.exercicioId);
           const nomeIcone = info?.icone || 'fitness';
           return (
             <View style={styles.card}>

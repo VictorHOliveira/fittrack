@@ -1,14 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TextInput, Vibration, BackHandler } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTreinos, useHistorico } from '../../../src/hooks/useTreinos';
-import { formatarDuracao } from '../../../src/utils/storage';
-import { verificarNovoRecorde } from '../../../src/services/firestoreService';
+import { Exercicio } from '../../../src/types';
+import { formatarDuracao, carregarHistorico, salvarTreinoEmAndamento, carregarTreinoEmAndamento, limparTreinoEmAndamento } from '../../../src/utils/storage';
+import { carregarExerciciosPersonalizados, verificarNovoRecorde } from '../../../src/services/firestoreService';
 import exerciciosData from '../../../src/data/exercicios.json';
 import TimerTreino from '../../../src/components/treino/TimerTreino';
 import ExercicioExecucaoCard from '../../../src/components/treino/ExercicioExecucaoCard';
 import DetalhesExercicioModal from '../../../src/components/DetalhesExercicioModal';
+
+const audioSource = require('../../../assets/sounds/descanso.wav');
 
 const COR_FUNDO = '#1a1a2e';
 const COR_PRIMARIA = '#6C63FF';
@@ -27,6 +31,53 @@ export default function ExecutarTreinoScreen() {
   const [exEditandoDescanso, setExEditandoDescanso] = useState<number | null>(null);
   const [valorDescanso, setValorDescanso] = useState('');
   const [exercicioDetalheIndex, setExercicioDetalheIndex] = useState<number | null>(null);
+  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
+  const [customLoaded, setCustomLoaded] = useState(false);
+  const [historicoAnterior, setHistoricoAnterior] = useState<Record<string, { cargas: number; repeticoes: number }[]>>({});
+  const tempoInicioRef = useRef<number>(Date.now());
+  const podeSalvarRef = useRef(true);
+
+  const player = useAudioPlayer(audioSource);
+
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'mixWithOthers' });
+  }, []);
+
+  useEffect(() => {
+    carregarTreinoEmAndamento().then(salvo => {
+      if (salvo && salvo.treinoId === id) {
+        tempoInicioRef.current = salvo.tempoInicio;
+        setExerciciosExecucao(salvo.exerciciosExecucao);
+        setTempo(Math.floor((Date.now() - salvo.tempoInicio) / 1000));
+      }
+    });
+  }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarExerciciosPersonalizados().then(custom => {
+        setExerciciosCustom(custom);
+        setCustomLoaded(true);
+      });
+    }, [])
+  );
+
+  useEffect(() => {
+    carregarHistorico().then(historico => {
+      const anteriorMap: Record<string, { cargas: number; repeticoes: number }[]> = {};
+      const ordenado = [...historico].sort(
+        (a, b) => new Date(b.dataExecucao).getTime() - new Date(a.dataExecucao).getTime()
+      );
+      for (const h of ordenado) {
+        for (const ex of h.exercicios) {
+          if (!anteriorMap[ex.exercicioId]) {
+            anteriorMap[ex.exercicioId] = ex.series;
+          }
+        }
+      }
+      setHistoricoAnterior(anteriorMap);
+    });
+  }, []);
 
   useEffect(() => {
     const t = treinos.find(t => t.id === id);
@@ -46,25 +97,32 @@ export default function ExecutarTreinoScreen() {
     descansoRef.current = setInterval(() => {
       setExerciciosExecucao(prev => {
         let mudou = false;
+        let chegouZero = false;
         const novos = prev.map(ex => {
           if (ex.descansoRestante > 0) {
             mudou = true;
+            if (ex.descansoRestante === 1) chegouZero = true;
             return { ...ex, descansoRestante: ex.descansoRestante - 1 };
           }
           return ex;
         });
+        if (chegouZero) {
+          Vibration.vibrate(500);
+          player.seekTo(0);
+          player.play();
+        }
         return mudou ? novos : prev;
       });
     }, 1000);
     return () => {
       if (descansoRef.current) clearInterval(descansoRef.current);
     };
-  }, []);
+  }, [player]);
 
   useEffect(() => {
-    if (treino && exerciciosExecucao.length === 0) {
+    if (treino && customLoaded && exerciciosExecucao.length === 0) {
       const exec = treino.exercicios.map(ex => {
-        const exercicio = exerciciosData.find(e => e.id === ex.exercicioId);
+        const exercicio = [...exerciciosData, ...exerciciosCustom].find(e => e.id === ex.exercicioId);
         return {
           ...ex,
           nome: exercicio?.nome || 'Exercício',
@@ -72,6 +130,7 @@ export default function ExecutarTreinoScreen() {
           icone: exercicio?.icone || 'fitness',
           corGrupo: exercicio?.corGrupo || COR_PRIMARIA,
           descansoRestante: 0,
+          anterior: historicoAnterior[ex.exercicioId] || [],
           series: ex.series.map(s => ({
             ...s,
             cargas: 0,
@@ -82,10 +141,72 @@ export default function ExecutarTreinoScreen() {
       });
       setExerciciosExecucao(exec);
     }
-  }, [treino]);
+  }, [treino, customLoaded]);
+
+  useEffect(() => {
+    if (Object.keys(historicoAnterior).length === 0 || exerciciosExecucao.length === 0) return;
+    setExerciciosExecucao(prev => prev.map(ex => ({
+      ...ex,
+      anterior: historicoAnterior[ex.exercicioId] || ex.anterior || [],
+    })));
+  }, [historicoAnterior]);
+
+  useEffect(() => {
+    if (exerciciosExecucao.length === 0) return;
+    const interval = setInterval(() => {
+      salvarTreinoEmAndamento({
+        treinoId: id!,
+        exerciciosExecucao,
+        tempoInicio: tempoInicioRef.current,
+        ultimaPersistencia: Date.now(),
+      });
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [exerciciosExecucao, id]);
+
+  const persistirEBair = useCallback(() => {
+    if (exerciciosExecucao.length > 0 && podeSalvarRef.current) {
+      salvarTreinoEmAndamento({
+        treinoId: id!,
+        exerciciosExecucao,
+        tempoInicio: tempoInicioRef.current,
+        ultimaPersistencia: Date.now(),
+      });
+    }
+  }, [exerciciosExecucao, id]);
+
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => {
+            persistirEBair();
+            router.back();
+          }}
+          style={{ marginRight: 8, padding: 4 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, persistirEBair, router]);
+
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      persistirEBair();
+      router.back();
+      return true;
+    });
+    return () => handler.remove();
+  }, [persistirEBair]);
 
   const finalizarTreino = async () => {
     if (!treino) return;
+
+    podeSalvarRef.current = false;
+    await limparTreinoEmAndamento();
 
     const novosRecordes: string[] = [];
 
@@ -107,7 +228,7 @@ export default function ExecutarTreinoScreen() {
         ? `🏆 Novo recorde em: ${novosRecordes.join(', ')}!\n\nDeseja salvar no histórico?`
         : 'Deseja salvar este treino no histórico?',
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cancelar', style: 'cancel', onPress: () => { podeSalvarRef.current = true; } },
         {
           text: 'Salvar',
           onPress: async () => {
@@ -134,13 +255,19 @@ export default function ExecutarTreinoScreen() {
     );
   };
 
-  const atualizarSerie = (exIndex: number, serIndex: number, campo: 'cargas' | 'repeticoes', valor: number) => {
+  const atualizarSerie = (exIndex: number, serIndex: number, campo: 'cargas' | 'repeticoes', valor: number | string) => {
+    let parsed: number;
+    if (typeof valor === 'string') {
+      parsed = parseFloat(valor.replace(',', '.')) || 0;
+    } else {
+      parsed = valor;
+    }
     setExerciciosExecucao(prev => {
       const novos = [...prev];
       novos[exIndex] = {
         ...novos[exIndex],
         series: novos[exIndex].series.map((s: any, i: number) =>
-          i === serIndex ? { ...s, [campo]: Math.max(0, valor) } : s
+          i === serIndex ? { ...s, [campo]: Math.max(0, parsed) } : s
         ),
       };
       return novos;
@@ -246,7 +373,7 @@ export default function ExecutarTreinoScreen() {
       <DetalhesExercicioModal
         exercicio={
           exercicioDetalheIndex !== null && exerciciosExecucao[exercicioDetalheIndex]
-            ? (exerciciosData.find((e: any) => e.id === exerciciosExecucao[exercicioDetalheIndex].exercicioId) ?? null)
+            ? ([...exerciciosData, ...exerciciosCustom].find((e: any) => e.id === exerciciosExecucao[exercicioDetalheIndex].exercicioId) ?? null)
             : null
         }
         visible={exercicioDetalheIndex !== null}

@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos } from '../../src/hooks/useTreinos';
-import { Treino, ExercicioTreino } from '../../src/types';
+import { Treino, ExercicioTreino, Exercicio } from '../../src/types';
 import { gerarId } from '../../src/utils/storage';
-import { pegarSelecionados, onSelecionado } from '../../src/utils/selecionarExercicioState';
+import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
+import { pegarSelecionados } from '../../src/utils/selecionarExercicioState';
 import exerciciosData from '../../src/data/exercicios.json';
 
 const COR_PRIMARIA = '#6C63FF';
@@ -22,32 +24,40 @@ export default function CriarTreinoScreen() {
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [diaSemana, setDiaSemana] = useState('');
+  const [diaSemana, setDiaSemana] = useState<string[]>([]);
   const [exercicios, setExercicios] = useState<ExercicioTreino[]>([]);
+  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
+  const treinoCarregado = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarExerciciosPersonalizados().then(setExerciciosCustom);
+    }, [])
+  );
 
   useEffect(() => {
-    if (id) {
+    if (id && !treinoCarregado.current) {
       const treino = treinos.find(t => t.id === id);
       if (treino) {
+        treinoCarregado.current = true;
         setNome(treino.nome);
         setDescricao(treino.descricao || '');
-        setDiaSemana(treino.diaSemana || '');
+        setDiaSemana(
+          Array.isArray(treino.diaSemana)
+            ? treino.diaSemana
+            : treino.diaSemana ? [treino.diaSemana] : []
+        );
         setExercicios(treino.exercicios);
       }
     }
   }, [id, treinos]);
 
-  useEffect(() => {
-    const resultados = pegarSelecionados();
-    resultados.forEach(id => adicionarExercicio(id));
-
-    const unsubscribe = onSelecionado(() => {
-      const ids = pegarSelecionados();
-      ids.forEach(id => adicionarExercicio(id));
-    });
-
-    return unsubscribe;
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const resultados = pegarSelecionados();
+      resultados.forEach(id => adicionarExercicio(id));
+    }, [])
+  );
 
   const adicionarExercicio = (exercicioId: string) => {
     const novoExercicio: ExercicioTreino = {
@@ -126,7 +136,7 @@ export default function CriarTreinoScreen() {
   };
 
   const getExercicioInfo = (exercicioId: string) => {
-    return exerciciosData.find(e => e.id === exercicioId);
+    return [...exerciciosData, ...exerciciosCustom].find(e => e.id === exercicioId);
   };
 
   return (
@@ -155,10 +165,10 @@ export default function CriarTreinoScreen() {
           {DIAS_SEMANA.map(dia => (
             <TouchableOpacity
               key={dia}
-              style={[styles.diaBotao, diaSemana === dia && styles.diaBotaoAtivo]}
-              onPress={() => setDiaSemana(diaSemana === dia ? '' : dia)}
+              style={[styles.diaBotao, diaSemana.includes(dia) && styles.diaBotaoAtivo]}
+              onPress={() => setDiaSemana(diaSemana.includes(dia) ? diaSemana.filter(d => d !== dia) : [...diaSemana, dia])}
             >
-              <Text style={[styles.diaTexto, diaSemana === dia && styles.diaTextoAtivo]}>
+              <Text style={[styles.diaTexto, diaSemana.includes(dia) && styles.diaTextoAtivo]}>
                 {dia.slice(0, 3)}
               </Text>
             </TouchableOpacity>

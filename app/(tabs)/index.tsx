@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos, useHistorico } from '../../src/hooks/useTreinos';
 import { carregarPerfil, carregarPerfilLocal } from '../../src/services/firestoreService';
 import { PerfilUsuario } from '../../src/types';
+import { carregarTreinoEmAndamento, TreinoEmAndamento, formatarDuracao } from '../../src/utils/storage';
 import PainelAgua from '../../src/components/agua/PainelAgua';
 import PainelCardio from '../../src/components/cardio/PainelCardio';
 
@@ -14,16 +15,6 @@ const COR_CARD = '#16213e';
 const COR_SUCESSO = '#4CAF50';
 const COR_AVISO = '#ff9800';
 
-const DICAS = [
-  'Lembre-se de descansar 60-90 segundos entre as séries para máxima hipertrofia.',
-  'Beba pelo menos 500ml de água durante o treino para manter o desempenho.',
-  'Aqueça com 5-10 minutos de cardio leve antes de começar os exercícios.',
-  'Varie os exercícios a cada 4-6 semanas para estimular os músculos de forma diferente.',
-  'Durma 7-8 horas por noite para otimizar a recuperação muscular.',
-  'Coma proteína dentro de 30 minutos após o treino para melhor recuperação.',
-  'A técnica é mais importante que a carga. Foque na execução correta.',
-];
-
 function getMsgHorario(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Bom dia';
@@ -31,8 +22,13 @@ function getMsgHorario(): string {
   return 'Boa noite';
 }
 
-function getRandomDica(): string {
-  return DICAS[Math.floor(Math.random() * DICAS.length)];
+function normalizarPerfil(p: PerfilUsuario): PerfilUsuario {
+  return {
+    ...p,
+    nivel: p.nivel || 'iniciante',
+    objetivo: Array.isArray(p.objetivo) ? p.objetivo : p.objetivo ? [p.objetivo] : [],
+    gorduraCorporal: p.gorduraCorporal ?? '',
+  };
 }
 
 export default function HomeScreen() {
@@ -40,23 +36,45 @@ export default function HomeScreen() {
   const { treinos } = useTreinos();
   const { historico } = useHistorico();
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
-  const [dica] = useState(getRandomDica);
+  const [treinoEmAndamento, setTreinoEmAndamento] = useState<TreinoEmAndamento | null>(null);
+  const [tempoAndamento, setTempoAndamento] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       (async () => {
         const local = await carregarPerfilLocal();
-        setPerfil(local);
+        setPerfil(local ? normalizarPerfil(local) : null);
 
         const remote = await carregarPerfil();
-        if (JSON.stringify(local) !== JSON.stringify(remote)) setPerfil(remote);
+        if (JSON.stringify(local) !== JSON.stringify(remote)) setPerfil(remote ? normalizarPerfil(remote) : null);
+
+        const emAndamento = await carregarTreinoEmAndamento();
+        setTreinoEmAndamento(emAndamento);
+        if (emAndamento) {
+          setTempoAndamento(Math.floor((Date.now() - emAndamento.tempoInicio) / 1000));
+        }
       })();
     }, [])
   );
 
+  useEffect(() => {
+    if (!treinoEmAndamento) return;
+    const interval = setInterval(() => {
+      setTempoAndamento(Math.floor((Date.now() - treinoEmAndamento.tempoInicio) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [treinoEmAndamento]);
+
   const diasSeguidos = historico.length >= 3;
 
   const nomeUsuario = perfil?.nome?.trim() || 'Atleta';
+  const nomeTreinoAndamento = treinoEmAndamento
+    ? treinos.find(t => t.id === treinoEmAndamento.treinoId)?.nome || 'Treino'
+    : '';
+  const exerciciosConcluidos = treinoEmAndamento
+    ? treinoEmAndamento.exerciciosExecucao.filter((ex: any) => ex.series.some((s: any) => s.concluida)).length
+    : 0;
+  const totalExercicios = treinoEmAndamento?.exerciciosExecucao.length || 0;
 
   return (
     <View style={styles.container}>
@@ -76,7 +94,7 @@ export default function HomeScreen() {
         <View style={styles.perfilBadge}>
           <Ionicons name="fitness" size={14} color={COR_PRIMARIA} />
           <Text style={styles.perfilBadgeTexto}>
-            {perfil.nivel.charAt(0).toUpperCase() + perfil.nivel.slice(1)} • {perfil.objetivo || 'Treino'}
+            {perfil.nivel.charAt(0).toUpperCase() + perfil.nivel.slice(1)} • {perfil.objetivo?.join(', ') || 'Treino'}
           </Text>
         </View>
       )}
@@ -134,14 +152,41 @@ export default function HomeScreen() {
         <Text style={styles.botaoSecundarioTexto}>Ver Exercícios</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.botaoSecundario}
+        onPress={() => router.push('/iniciar-treino')}
+      >
+        <Ionicons name="play-circle" size={24} color={COR_SUCESSO} />
+        <Text style={styles.botaoSecundarioTexto}>Iniciar Treino de Hoje</Text>
+      </TouchableOpacity>
+
       <PainelAgua />
 
       <PainelCardio />
 
-      <View style={styles.dicas}>
-        <Text style={styles.dicasTitulo}>Dica do Dia</Text>
-        <Text style={styles.dicasTexto}>{dica}</Text>
-      </View>
+      {treinoEmAndamento && (
+        <View style={styles.painelFlutuante}>
+          <TouchableOpacity
+            style={styles.painelFlutuanteTouch}
+            activeOpacity={0.8}
+            onPress={() => router.push({ pathname: '/treino/executar/[id]', params: { id: treinoEmAndamento.treinoId } })}
+          >
+            <View style={styles.painelIconeContainer}>
+              <Ionicons name="timer" size={20} color="#ff9800" />
+            </View>
+            <View style={styles.painelInfo}>
+              <Text style={styles.painelTitulo}>Treino em Andamento</Text>
+              <Text style={styles.painelSubtitulo}>
+                {nomeTreinoAndamento}  •  {exerciciosConcluidos}/{totalExercicios} exercícios
+              </Text>
+            </View>
+            <View style={styles.painelDireita}>
+              <Text style={styles.painelTempo}>{formatarDuracao(tempoAndamento)}</Text>
+              <Ionicons name="play" size={18} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -152,6 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: COR_FUNDO,
     padding: 20,
     paddingTop: 60,
+    paddingBottom: 100,
   },
   headerRow: {
     flexDirection: 'row',
@@ -271,22 +317,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  dicas: {
-    backgroundColor: COR_CARD,
-    borderRadius: 16,
-    padding: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: COR_PRIMARIA,
+  painelFlutuante: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#16213e',
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+    paddingBottom: 20,
   },
-  dicasTitulo: {
+  painelFlutuanteTouch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  painelIconeContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ff980015',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  painelInfo: {
+    flex: 1,
+  },
+  painelTitulo: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  painelSubtitulo: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+  painelDireita: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  painelTempo: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COR_PRIMARIA,
-    marginBottom: 8,
-  },
-  dicasTexto: {
-    fontSize: 14,
-    color: '#aaa',
-    lineHeight: 20,
+    color: '#ff9800',
   },
 });

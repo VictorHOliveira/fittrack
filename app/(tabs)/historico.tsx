@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { BarChart, LineChart } from 'react-native-chart-kit';
+import { BarChart } from 'react-native-chart-kit';
 import { useHistorico } from '../../src/hooks/useTreinos';
 import { useRecordes } from '../../src/hooks/useRecordes';
 import {
@@ -14,6 +14,7 @@ import {
 } from '../../src/utils/stats';
 import { TreinoCompleto } from '../../src/types';
 import { formatarData, formatarDuracao } from '../../src/utils/storage';
+import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
 import { compartilharRelatorio } from '../../src/utils/export';
 import { carregarPerfil } from '../../src/services/firestoreService';
 import exerciciosData from '../../src/data/exercicios.json';
@@ -36,11 +37,6 @@ const chartConfig = {
   color: (opacity = 1) => `rgba(108, 99, 255, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.7})`,
   style: { borderRadius: 16 },
-  propsForDots: {
-    r: '5',
-    strokeWidth: '2',
-    stroke: COR_PRIMARIA,
-  },
   propsForBackgroundLines: {
     strokeDasharray: '',
     stroke: 'rgba(255,255,255,0.08)',
@@ -54,6 +50,16 @@ export default function HistoricoScreen() {
   const [exercicioSelecionado, setExercicioSelecionado] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState<30 | 90>(30);
   const [treinoDetalhe, setTreinoDetalhe] = useState<TreinoCompleto | null>(null);
+  const [customLoaded, setCustomLoaded] = useState(false);
+
+  useEffect(() => {
+    carregarExerciciosPersonalizados().then(custom => {
+      custom.forEach(e => { exercicioNomeMap[e.id] = e.nome; });
+      setCustomLoaded(true);
+    });
+  }, []);
+
+  const getNome = (id: string) => exercicioNomeMap[id] || getExercicioNome(id) || id;
 
   const resumo = calcularResumoPeriodo(historico, periodo);
   const frequencia = calcularFrequenciaSemanal(historico);
@@ -63,8 +69,7 @@ export default function HistoricoScreen() {
     : null;
 
   const recordesLista = Object.entries(recordes).map(([exId, rec]) => {
-    const ex = exerciciosData.find(e => e.id === exId);
-    return { exercicioId: exId, nome: ex?.nome || exId, icone: ex?.icone || 'fitness', corGrupo: ex?.corGrupo || COR_PRIMARIA, ...rec };
+    return { exercicioId: exId, nome: getNome(exId), icone: 'fitness', corGrupo: COR_PRIMARIA, ...rec };
   }).sort((a, b) => b.carga - a.carga);
 
   if (carregando) {
@@ -192,7 +197,7 @@ export default function HistoricoScreen() {
                 onPress={() => setExercicioSelecionado(exercicioSelecionado === id ? null : id)}
               >
                 <Text style={[styles.filtroTexto, exercicioSelecionado === id && styles.filtroTextoAtivo]}>
-                  {getExercicioNome(id)}
+                  {getNome(id)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -200,7 +205,7 @@ export default function HistoricoScreen() {
 
           {evolucao && evolucao.labels.length > 0 ? (
             <View>
-              <LineChart
+              <BarChart
                 data={{
                   labels: evolucao.labels.slice(-8),
                   datasets: [
@@ -217,7 +222,7 @@ export default function HistoricoScreen() {
                 style={styles.chart}
                 yAxisSuffix=" kg"
                 yAxisLabel=""
-                bezier
+                showValuesOnTopOfBars
               />
               <Text style={styles.chartLegenda}>Carga máxima por treino</Text>
             </View>
@@ -281,7 +286,7 @@ export default function HistoricoScreen() {
             </View>
             <ScrollView contentContainerStyle={styles.histTreinoBody}>
               {treinoDetalhe?.exercicios.map((ex, ei) => {
-                const nomeEx = exercicioNomeMap[ex.exercicioId] || ex.exercicioId;
+                const nomeEx = getNome(ex.exercicioId);
                 return (
                   <View key={ei} style={styles.histTreinoEx}>
                     <Text style={styles.histTreinoExNome}>{nomeEx}</Text>

@@ -6,6 +6,7 @@ export interface Exercicio {
   corGrupo: string;
   descricao: string;
   equipamento?: string;
+  personalizado?: boolean;
 }
 
 export interface Serie {
@@ -26,7 +27,7 @@ export interface Treino {
   id: string;
   nome: string;
   descricao: string;
-  diaSemana?: string;
+  diaSemana?: string[];
   exercicios: ExercicioTreino[];
   criadoEm: string;
 }
@@ -73,8 +74,9 @@ export interface PerfilUsuario {
   peso: string;
   altura: string;
   nivel: 'iniciante' | 'intermediario' | 'avancado';
-  objetivo: string;
+  objetivo: string[];
   diasPorSemana: string;
+  gorduraCorporal: string;
 }
 
 export interface RecordeExercicio {

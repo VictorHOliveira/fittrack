@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ExercicioGif from '../ExercicioGif';
 
@@ -21,12 +22,13 @@ interface ExercicioExecucao {
   descanso: number;
   descansoRestante: number;
   series: Serie[];
+  anterior?: { cargas: number; repeticoes: number }[];
 }
 
 interface Props {
   exercicio: ExercicioExecucao;
   exIndex: number;
-  onAtualizarSerie: (exIndex: number, serIndex: number, campo: 'cargas' | 'repeticoes', valor: number) => void;
+  onAtualizarSerie: (exIndex: number, serIndex: number, campo: 'cargas' | 'repeticoes', valor: number | string) => void;
   onMarcarConcluida: (exIndex: number, serIndex: number) => void;
   onAdicionarSerie: (exIndex: number) => void;
   onRemoverSerie: (exIndex: number) => void;
@@ -60,20 +62,36 @@ export default function ExercicioExecucaoCard({ exercicio, exIndex, onAtualizarS
 
       <View style={styles.seriesHeader}>
         <Text style={styles.serieCol}>Série</Text>
+        <Text style={[styles.serieCol, { width: 72 }]}>Anterior</Text>
         <Text style={styles.serieCol}>Carga (kg)</Text>
         <Text style={styles.serieCol}>Reps</Text>
         <Text style={styles.serieCol}>OK</Text>
       </View>
 
-      {exercicio.series.map((serie, serIndex) => (
+      {exercicio.series.map((serie, serIndex) => {
+        const temAnterior = exercicio.anterior?.[serIndex] && exercicio.anterior[serIndex].cargas > 0;
+        return (
         <View key={serIndex} style={[styles.serieRow, serie.concluida && styles.serieConcluida]}>
           <Text style={styles.serieNumero}>{serIndex + 1}</Text>
+
+          <View style={styles.anteriorContainer}>
+            <Text style={styles.anteriorTexto}>
+              {temAnterior ? `${exercicio.anterior![serIndex].cargas}kg × ${exercicio.anterior![serIndex].repeticoes}` : '—'}
+            </Text>
+          </View>
 
           <View style={styles.serieControles}>
             <TouchableOpacity onPress={() => onAtualizarSerie(exIndex, serIndex, 'cargas', serie.cargas - 2.5)}>
               <Ionicons name="remove-circle" size={24} color="#888" />
             </TouchableOpacity>
-            <Text style={styles.serieValor}>{serie.cargas}</Text>
+            <TextInput
+              style={styles.serieInput}
+              keyboardType="decimal-pad"
+              value={String(serie.cargas || '')}
+              onChangeText={(text) => onAtualizarSerie(exIndex, serIndex, 'cargas', text)}
+              onBlur={() => onAtualizarSerie(exIndex, serIndex, 'cargas', String(serie.cargas))}
+              selectTextOnFocus
+            />
             <TouchableOpacity onPress={() => onAtualizarSerie(exIndex, serIndex, 'cargas', serie.cargas + 2.5)}>
               <Ionicons name="add-circle" size={24} color="#888" />
             </TouchableOpacity>
@@ -97,7 +115,8 @@ export default function ExercicioExecucaoCard({ exercicio, exIndex, onAtualizarS
             />
           </TouchableOpacity>
         </View>
-      ))}
+        );
+      })}
 
       <View style={styles.footer}>
         <TouchableOpacity
@@ -188,7 +207,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 4,
+  },
+  anteriorContainer: {
+    width: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  anteriorTexto: {
+    color: '#666',
+    fontSize: 10,
+    textAlign: 'center',
   },
   serieValor: {
     color: '#fff',
@@ -196,6 +225,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     minWidth: 30,
     textAlign: 'center',
+  },
+  serieInput: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    minWidth: 40,
+    textAlign: 'center',
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   footer: {
     flexDirection: 'row',

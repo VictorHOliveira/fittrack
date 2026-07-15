@@ -16,6 +16,7 @@ interface ExercicioData {
   corGrupo: string;
   descricao: string;
   equipamento?: string;
+  personalizado?: boolean;
 }
 
 interface Props {

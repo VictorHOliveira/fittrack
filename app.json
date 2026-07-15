@@ -2,7 +2,7 @@
   "expo": {
     "name": "Treino Mais",
     "slug": "AppGymTraining",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -19,15 +19,13 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.victorhugooliveira87.AppGymTraining",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 4
     },
     "splash": {
       "backgroundColor": "#1a1a2e",
       "image": "./assets/icon.png",
       "resizeMode": "contain"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -42,7 +40,15 @@
       "expo-sharing",
       "expo-splash-screen",
       "@react-native-firebase/app",
-      "@react-native-firebase/auth"
-    ]
+      "@react-native-firebase/auth",
+      "expo-audio"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b32b9e3e-b418-49d1-be54-8cd4ae2b5d4a"
+      }
+    },
+    "owner": "victorhugooliveira87"
   }
 }

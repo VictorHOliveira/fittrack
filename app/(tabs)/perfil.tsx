@@ -4,7 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { PerfilUsuario } from '../../src/types';
-import { salvarPerfil, carregarPerfil } from '../../src/services/firestoreService';
+import { salvarPerfil, carregarPerfil, limparTodosDados } from '../../src/services/firestoreService';
 import { getAuth, getDb, USERS_COLLECTION } from '../../src/lib/firebase';
 
 const COR_PRIMARIA = '#6C63FF';
@@ -19,7 +19,7 @@ const NIVEIS = [
 ];
 
 const OBJETIVOS = ['Hipertrofia', 'Perda de peso', 'Força', 'Resistência', 'Saúde geral'];
-const DIAS_SEMANA = ['3', '4', '5', '6'];
+const DIAS_SEMANA = ['1', '2', '3', '4', '5', '6', '7'];
 
 export default function PerfilScreen() {
   const router = useRouter();
@@ -29,8 +29,9 @@ export default function PerfilScreen() {
     peso: '',
     altura: '',
     nivel: 'iniciante',
-    objetivo: '',
+    objetivo: [],
     diasPorSemana: '4',
+    gorduraCorporal: '',
   });
   const [salvou, setSalvou] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'checking' | 'synced' | 'offline' | 'error'>('checking');
@@ -56,7 +57,14 @@ export default function PerfilScreen() {
   useEffect(() => {
     (async () => {
       const dados = await carregarPerfil();
-      if (dados) setPerfil(dados);
+      if (dados) {
+        setPerfil({
+          ...dados,
+          objetivo: Array.isArray(dados.objetivo) ? dados.objetivo :
+                    dados.objetivo ? [dados.objetivo] : [],
+          gorduraCorporal: dados.gorduraCorporal ?? '',
+        });
+      }
     })();
   }, []);
 
@@ -72,6 +80,41 @@ export default function PerfilScreen() {
 
   const getInicial = () => {
     return perfil.nome.trim() ? perfil.nome.trim()[0].toUpperCase() : '?';
+  };
+
+  const handleLimparDados = () => {
+    Alert.alert(
+      'Atenção',
+      'Isso vai apagar TODOS os seus dados: treinos, histórico, medidas, cardios, água e exercícios personalizados. Essa ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Apagar Tudo',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Confirmação Final',
+              'Tem certeza absoluta? Todos os dados serão perdidos permanentemente.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Sim, Apagar',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await limparTodosDados();
+                      router.replace('/login');
+                    } catch {
+                      Alert.alert('Erro', 'Não foi possível apagar os dados');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -140,7 +183,17 @@ export default function PerfilScreen() {
               keyboardType="numeric"
             />
           </View>
-          <View style={styles.coluna} />
+          <View style={styles.coluna}>
+            <Text style={styles.label}>Gordura Corporal (%)</Text>
+            <TextInput
+              style={styles.input}
+              value={perfil.gorduraCorporal}
+              onChangeText={(t) => setPerfil({ ...perfil, gorduraCorporal: t })}
+              placeholder="Ex: 18"
+              placeholderTextColor="#555"
+              keyboardType="numeric"
+            />
+          </View>
         </View>
 
         <Text style={styles.label}>Nível de Treino</Text>
@@ -161,17 +214,25 @@ export default function PerfilScreen() {
 
         <Text style={styles.label}>Objetivo</Text>
         <View style={styles.objetivosContainer}>
-          {OBJETIVOS.map((obj) => (
-            <TouchableOpacity
-              key={obj}
-              style={[styles.objetivoBotao, perfil.objetivo === obj && styles.objetivoBotaoAtivo]}
-              onPress={() => setPerfil({ ...perfil, objetivo: perfil.objetivo === obj ? '' : obj })}
-            >
-              <Text style={[styles.objetivoTexto, perfil.objetivo === obj && styles.objetivoTextoAtivo]}>
-                {obj}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {OBJETIVOS.map((obj) => {
+            const ativo = perfil.objetivo.includes(obj);
+            return (
+              <TouchableOpacity
+                key={obj}
+                style={[styles.objetivoBotao, ativo && styles.objetivoBotaoAtivo]}
+                onPress={() => {
+                  const novo = ativo
+                    ? perfil.objetivo.filter((o) => o !== obj)
+                    : [...perfil.objetivo, obj];
+                  setPerfil({ ...perfil, objetivo: novo });
+                }}
+              >
+                <Text style={[styles.objetivoTexto, ativo && styles.objetivoTextoAtivo]}>
+                  {obj}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <Text style={styles.label}>Dias por semana</Text>
@@ -250,6 +311,11 @@ export default function PerfilScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        <TouchableOpacity style={styles.botaoLimpar} onPress={handleLimparDados}>
+          <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
+          <Text style={styles.botaoLimparTexto}>Limpar Todos os Dados</Text>
+        </TouchableOpacity>
 
         <Text style={styles.versao}>v{Constants.expoConfig?.version || '1.0.0'}</Text>
       </ScrollView>
@@ -385,6 +451,7 @@ const styles = StyleSheet.create({
   },
   diasContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 30,
   },
@@ -485,5 +552,22 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
     marginTop: 24,
+  },
+  botaoLimpar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 30,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ff6b6b44',
+    backgroundColor: '#ff6b6b11',
+  },
+  botaoLimparTexto: {
+    fontSize: 14,
+    color: '#ff6b6b',
+    fontWeight: 'bold',
   },
 });

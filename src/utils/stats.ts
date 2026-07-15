@@ -112,11 +112,13 @@ export function calcularResumoPeriodo(
   };
 }
 
-export function getExercicioNome(exercicioId: string): string {
+export function getExercicioNome(exercicioId: string, customMap?: Record<string, string>): string {
+  if (customMap?.[exercicioId]) return customMap[exercicioId];
   return exerciciosData.find(e => e.id === exercicioId)?.nome || exercicioId;
 }
 
-export function getExercicioMusculo(exercicioId: string): string {
+export function getExercicioMusculo(exercicioId: string, customMap?: Record<string, string>): string {
+  if (customMap?.[exercicioId]) return '';
   return exerciciosData.find(e => e.id === exercicioId)?.musculo || '';
 }
 

@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRecordes } from '../hooks/useRecordes';
 import exerciciosData from '../data/exercicios.json';
+import { carregarExerciciosPersonalizados } from '../services/firestoreService';
+import { Exercicio } from '../types';
 import ExercicioGif from './ExercicioGif';
 
 const COR_PRIMARIA = '#6C63FF';
 const COR_FUNDO = '#1a1a2e';
 const COR_CARD = '#16213e';
-
-const MUSCULOS = [...new Set(exerciciosData.map(e => e.musculo))];
 
 const ICON_MAP: Record<string, string> = {
   'body': 'body',
@@ -28,7 +29,8 @@ const ICON_MAP: Record<string, string> = {
 
 interface Props {
   onSelect?: (exercicioId: string) => void;
-  onDetalhe?: (exercicioId: string) => void;
+  onDetalhe?: (exercicio: Exercicio) => void;
+  onCriarExercicio?: () => void;
   selecionaveis?: boolean;
   idsJaAdicionados?: string[];
   idsSelecionados?: Set<string>;
@@ -39,6 +41,7 @@ interface Props {
 export default function ListaExercicios({
   onSelect,
   onDetalhe,
+  onCriarExercicio,
   selecionaveis = false,
   idsJaAdicionados = [],
   idsSelecionados,
@@ -48,8 +51,18 @@ export default function ListaExercicios({
   const { recordes } = useRecordes();
   const [busca, setBusca] = useState('');
   const [musculoFiltro, setMusculoFiltro] = useState('');
+  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
 
-  const exerciciosFiltrados = exerciciosData.filter(ex => {
+  useFocusEffect(
+    useCallback(() => {
+      carregarExerciciosPersonalizados().then(setExerciciosCustom);
+    }, [])
+  );
+
+  const todosExercicios = [...exerciciosData, ...exerciciosCustom];
+  const MUSCULOS = [...new Set(todosExercicios.map(e => e.musculo))];
+
+  const exerciciosFiltrados = todosExercicios.filter(ex => {
     const matchBusca = ex.nome.toLowerCase().includes(busca.toLowerCase());
     const matchMusculo = !musculoFiltro || ex.musculo === musculoFiltro;
     return matchBusca && matchMusculo;
@@ -90,6 +103,13 @@ export default function ListaExercicios({
         ))}
       </ScrollView>
 
+      {onCriarExercicio && (
+        <TouchableOpacity style={styles.criarBtn} activeOpacity={0.8} onPress={onCriarExercicio}>
+          <Ionicons name="add-circle" size={20} color="#fff" />
+          <Text style={styles.criarBtnTexto}>Criar Exercício</Text>
+        </TouchableOpacity>
+      )}
+
       {exerciciosFiltrados.map(item => {
         const pr = recordes[item.id];
         const nomeIcone = ICON_MAP[item.icone] || 'fitness';
@@ -102,6 +122,12 @@ export default function ListaExercicios({
             <View style={styles.cardConteudo}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardNome}>{item.nome}</Text>
+                {item.personalizado && (
+                  <View style={styles.customBadge}>
+                    <Ionicons name="create" size={10} color="#fff" />
+                    <Text style={styles.customBadgeTexto}>Custom</Text>
+                  </View>
+                )}
                 {mostrarPR && pr && (
                   <View style={styles.prBadge}>
                     <Ionicons name="trophy" size={12} color="#FFD700" />
@@ -114,7 +140,7 @@ export default function ListaExercicios({
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     onPress={(e) => {
                       e.stopPropagation();
-                      onDetalhe(item.id);
+                      onDetalhe(item);
                     }}
                   >
                     <Ionicons name="information-circle-outline" size={18} color="#888" />
@@ -210,6 +236,22 @@ const styles = StyleSheet.create({
   filtroTextoAtivo: {
     color: '#fff',
   },
+  criarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COR_PRIMARIA,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  criarBtnTexto: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   lista: {
     paddingHorizontal: 20,
     gap: 10,
@@ -245,6 +287,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     flex: 1,
+  },
+  customBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: COR_PRIMARIA + '40',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 6,
+  },
+  customBadgeTexto: {
+    fontSize: 9,
+    color: COR_PRIMARIA,
+    fontWeight: 'bold',
   },
   prBadge: {
     flexDirection: 'row',

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { TreinoPreDefinido, DiaTreino } from '../src/types';
+import { TreinoPreDefinido, DiaTreino, Exercicio } from '../src/types';
 import { listarTreinosPreDefinidos, importarTreinoPreDefinido, jaImportouTreino } from '../src/utils/storage';
+import { carregarExerciciosPersonalizados } from '../src/services/firestoreService';
 import exerciciosData from '../src/data/exercicios.json';
 
 const COR_PRIMARIA = '#6C63FF';
@@ -29,6 +30,11 @@ export default function TreinoPreDefinidoScreen() {
   const [treino, setTreino] = useState<TreinoPreDefinido | null>(null);
   const [jaImportado, setJaImportado] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
+
+  useEffect(() => {
+    carregarExerciciosPersonalizados().then(setExerciciosCustom);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -103,7 +109,7 @@ export default function TreinoPreDefinidoScreen() {
             </View>
 
             {dia.exercicios.map((ex, exIndex) => {
-              const info = exerciciosData.find(e => e.id === ex.exercicioId);
+              const info = [...exerciciosData, ...exerciciosCustom].find(e => e.id === ex.exercicioId);
               return (
                 <View key={exIndex} style={styles.exercicioItem}>
                   <View style={styles.exercicioInfo}>

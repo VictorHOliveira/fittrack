@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 
-import { carregarPerfil as loadPerfilRemote, carregarHistorico as loadHistoricoRemote } from '../../src/services/firestoreService';
+import { carregarPerfil as loadPerfilRemote, carregarHistorico as loadHistoricoRemote, carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
 import { carregarPerfil as loadPerfilLocal, carregarHistorico as loadHistoricoLocal, carregarRecordes as loadRecordesLocal, carregarRegistroAgua as loadRegistroAguaLocal, carregarCardio as loadCardioLocal } from '../../src/utils/storage';
 import { PerfilUsuario, TreinoCompleto, RecordesMap } from '../../src/types';
 import exerciciosData from '../../src/data/exercicios.json';
@@ -73,6 +73,7 @@ export default function CompartilharScreen() {
   const [compartilhando, setCompartilhando] = useState(false);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [fazerCapture, setFazerCapture] = useState(false);
+  const [customLoaded, setCustomLoaded] = useState(false);
 
   const cardRef = useRef<any>(null);
 
@@ -87,6 +88,13 @@ export default function CompartilharScreen() {
   }, [navigation]);
 
   useEffect(() => {
+    carregarExerciciosPersonalizados().then(custom => {
+      custom.forEach(e => { exercicioNomeMap[e.id] = e.nome; });
+      setCustomLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
     (async () => {
       try {
         const [perfilData, historicoData, recordesData, aguaData, cardioData] = await Promise.all([
@@ -98,11 +106,15 @@ export default function CompartilharScreen() {
         ]);
 
         setPerfil(perfilData);
-        setHistorico(historicoData);
         setRecordes(recordesData);
 
-        if (historicoData.length > 0) {
-          setTreino(historicoData[historicoData.length - 1]);
+        const ordenado = [...historicoData].sort(
+          (a, b) => new Date(b.dataExecucao).getTime() - new Date(a.dataExecucao).getTime()
+        );
+        setHistorico(ordenado);
+
+        if (ordenado.length > 0) {
+          setTreino(ordenado[0]);
         }
 
         const semanaInicio = inicioDaSemana();
@@ -138,12 +150,10 @@ export default function CompartilharScreen() {
           mimeType: 'image/png',
           dialogTitle: `Compartilhar - ${OPCOES.find(o => o.id === selectedCard)?.titulo || ''}`,
         });
-        router.push('/');
       } catch (e) {
         Alert.alert('Erro', 'Não foi possível compartilhar.');
       } finally {
         setCompartilhando(false);
-        setSelectedCard(null);
         setFazerCapture(false);
       }
     })();
@@ -159,7 +169,7 @@ export default function CompartilharScreen() {
 
   const treinoAnterior = historicoCompleto
     .filter(h => h.treino.nome === treinoNome && h.dataExecucao !== treino?.dataExecucao)
-    .pop();
+    .sort((a, b) => new Date(b.dataExecucao).getTime() - new Date(a.dataExecucao).getTime())[0] || null;
 
   const dadosAtual = treino ? {
     volume: treino.exercicios.reduce((acc, ex) => acc + ex.series.reduce((s, serie) => s + serie.cargas * serie.repeticoes, 0), 0),
@@ -213,8 +223,12 @@ export default function CompartilharScreen() {
 
   const handleTapCard = (id: string) => {
     if (compartilhando) return;
-    setSelectedCard(id);
-    setTimeout(() => setFazerCapture(true), 100);
+    setSelectedCard(selectedCard === id ? null : id);
+  };
+
+  const handleCompartilhar = () => {
+    if (!selectedCard || compartilhando) return;
+    setFazerCapture(true);
   };
 
   const exerciciosTreino = treino
@@ -274,45 +288,49 @@ export default function CompartilharScreen() {
         </View>
       )}
 
-      {selectedCard && fazerCapture && (
-        <View style={styles.captureContainer} pointerEvents="none">
-          <View ref={cardRef} collapsable={false}>
-            {cardConteudo[selectedCard]}
-          </View>
-        </View>
-      )}
+      <ScrollView contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
+        <Text style={styles.pageTitulo}>Compartilhar</Text>
+        <Text style={styles.pageSub}>Escolha o card que você quer compartilhar</Text>
 
-      <Text style={styles.pageTitulo}>Compartilhar</Text>
-      <Text style={styles.pageSub}>Escolha o card que você quer compartilhar</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {OPCOES.map((opcao) => (
+            <TouchableOpacity
+              key={opcao.id}
+              style={[styles.cardOpcao, selectedCard === opcao.id && styles.cardOpcaoSelecionado]}
+              onPress={() => handleTapCard(opcao.id)}
+              activeOpacity={0.7}
+              disabled={compartilhando}
+            >
+              <View style={[styles.opcaoIcon, { backgroundColor: opcao.cor + '20' }]}>
+                <Ionicons name={opcao.icon as any} size={36} color={opcao.cor} />
+              </View>
+              <Text style={styles.opcaoTitulo}>{opcao.titulo}</Text>
+              <Text style={styles.opcaoDesc}>{opcao.descricao}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {OPCOES.map((opcao) => (
-          <TouchableOpacity
-            key={opcao.id}
-            style={styles.cardOpcao}
-            onPress={() => handleTapCard(opcao.id)}
-            activeOpacity={0.7}
-            disabled={compartilhando}
-          >
-            <View style={[styles.opcaoIcon, { backgroundColor: opcao.cor + '20' }]}>
-              <Ionicons name={opcao.icon as any} size={36} color={opcao.cor} />
+        {selectedCard && (
+          <View style={styles.previewSection}>
+            <View ref={cardRef} collapsable={false}>
+              {cardConteudo[selectedCard]}
             </View>
-            <Text style={styles.opcaoTitulo}>{opcao.titulo}</Text>
-            <Text style={styles.opcaoDesc}>{opcao.descricao}</Text>
-          </TouchableOpacity>
-        ))}
+            <TouchableOpacity
+              style={styles.botaoCompartilhar}
+              onPress={handleCompartilhar}
+              disabled={compartilhando}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="share-outline" size={20} color="#fff" />
+              <Text style={styles.botaoCompartilharTexto}>Compartilhar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
-
-      <View style={styles.dica}>
-        <Ionicons name="information-circle" size={16} color="#888" />
-        <Text style={styles.dicaTexto}>
-          O card será gerado como imagem PNG para compartilhar onde quiser
-        </Text>
-      </View>
     </View>
   );
 }
@@ -320,12 +338,16 @@ export default function CompartilharScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COR_FUNDO, paddingTop: 8 },
   centered: { flex: 1, backgroundColor: COR_FUNDO, alignItems: 'center', justifyContent: 'center' },
+  mainScroll: { paddingBottom: 20 },
   pageTitulo: { fontSize: 24, fontWeight: 'bold', color: '#fff', paddingHorizontal: 20, marginBottom: 4 },
   pageSub: { fontSize: 13, color: '#888', paddingHorizontal: 20, marginBottom: 20 },
   scrollContent: { paddingHorizontal: 20, gap: 14, paddingBottom: 20 },
   cardOpcao: {
     width: 160, backgroundColor: COR_CARD, borderRadius: 16, padding: 20,
     alignItems: 'center', borderWidth: 1, borderColor: '#333',
+  },
+  cardOpcaoSelecionado: {
+    borderColor: COR_PRIMARIA, borderWidth: 2,
   },
   opcaoIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   opcaoTitulo: { fontSize: 14, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 6 },
@@ -335,12 +357,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', zIndex: 10, gap: 12,
   },
   overlayTexto: { fontSize: 14, color: '#fff' },
-  captureContainer: {
-    position: 'absolute', left: -9999, top: 0,
+  previewSection: {
+    marginTop: 4, marginHorizontal: 20, alignItems: 'center',
   },
-  dica: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 20, paddingVertical: 16, marginTop: 'auto',
+  botaoCompartilhar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: COR_PRIMARIA, borderRadius: 14, padding: 14,
+    marginTop: 12, width: '100%',
   },
-  dicaTexto: { fontSize: 12, color: '#888', flex: 1 },
+  botaoCompartilharTexto: { fontSize: 15, color: '#fff', fontWeight: 'bold' },
 });

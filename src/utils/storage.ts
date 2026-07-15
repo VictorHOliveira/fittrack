@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Treino, TreinoCompleto, PerfilUsuario, TreinoPreDefinido, RecordesMap, RecordeExercicio, MedidaCorporal, ConfigAgua, RegistroAguaDiario, CopoAgua, CardioEntry } from '../types';
+import { Treino, TreinoCompleto, PerfilUsuario, TreinoPreDefinido, RecordesMap, RecordeExercicio, MedidaCorporal, ConfigAgua, RegistroAguaDiario, CopoAgua, CardioEntry, Exercicio } from '../types';
 import treinosPreDefinidos from '../data/treinos-pre-definidos.json';
 
 const TREINOS_KEY = '@treinos';
@@ -39,8 +39,17 @@ export async function deletarTreino(id: string): Promise<void> {
 
 export async function salvarHistorico(treino: TreinoCompleto): Promise<void> {
   const historico = await carregarHistorico();
-  historico.push(treino);
+  const index = historico.findIndex(h => h.dataExecucao === treino.dataExecucao);
+  if (index >= 0) {
+    historico[index] = treino;
+  } else {
+    historico.push(treino);
+  }
   await AsyncStorage.setItem(HISTORICO_KEY, JSON.stringify(historico));
+}
+
+export async function salvarHistoricos(treinos: TreinoCompleto[]): Promise<void> {
+  await AsyncStorage.setItem(HISTORICO_KEY, JSON.stringify(treinos));
 }
 
 export async function carregarHistorico(): Promise<TreinoCompleto[]> {
@@ -98,7 +107,7 @@ export async function importarTreinoPreDefinido(preDefinidoId: string): Promise<
     id: treinoPre.id,
     nome: treinoPre.nome,
     descricao: treinoPre.descricao,
-    diaSemana: treinoPre.dias[0]?.diaDaSemana,
+    diaSemana: treinoPre.dias[0]?.diaDaSemana ? [treinoPre.dias[0].diaDaSemana] : undefined,
     exercicios: todosExercicios,
     criadoEm: new Date().toISOString(),
   };
@@ -241,4 +250,68 @@ export async function deletarCardioEntry(id: string): Promise<void> {
   const entries = await carregarCardio();
   const filtradas = entries.filter(e => e.id !== id);
   await salvarCardio(filtradas);
+}
+
+// ── Exercícios Personalizados ──
+
+const EXERCICIOS_CUSTOM_KEY = '@exerciciosPersonalizados';
+const TREINO_EM_ANDAMENTO_KEY = '@treinoEmAndamento';
+
+export async function carregarExerciciosPersonalizados(): Promise<Exercicio[]> {
+  const dados = await AsyncStorage.getItem(EXERCICIOS_CUSTOM_KEY);
+  return dados ? JSON.parse(dados) : [];
+}
+
+export async function salvarExerciciosPersonalizados(exercicios: Exercicio[]): Promise<void> {
+  await AsyncStorage.setItem(EXERCICIOS_CUSTOM_KEY, JSON.stringify(exercicios));
+}
+
+export async function salvarExercicioPersonalizado(exercicio: Exercicio): Promise<void> {
+  const lista = await carregarExerciciosPersonalizados();
+  const index = lista.findIndex(e => e.id === exercicio.id);
+  if (index >= 0) {
+    lista[index] = exercicio;
+  } else {
+    lista.push(exercicio);
+  }
+  await salvarExerciciosPersonalizados(lista);
+}
+
+export async function deletarExercicioPersonalizado(id: string): Promise<void> {
+  const lista = await carregarExerciciosPersonalizados();
+  const filtrados = lista.filter(e => e.id !== id);
+  await salvarExerciciosPersonalizados(filtrados);
+}
+
+export interface TreinoEmAndamento {
+  treinoId: string;
+  exerciciosExecucao: any[];
+  tempoInicio: number;
+  ultimaPersistencia: number;
+}
+
+export async function salvarTreinoEmAndamento(dados: TreinoEmAndamento): Promise<void> {
+  await AsyncStorage.setItem(TREINO_EM_ANDAMENTO_KEY, JSON.stringify(dados));
+}
+
+export async function carregarTreinoEmAndamento(): Promise<TreinoEmAndamento | null> {
+  const raw = await AsyncStorage.getItem(TREINO_EM_ANDAMENTO_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as TreinoEmAndamento;
+  } catch {
+    return null;
+  }
+}
+
+export async function limparTreinoEmAndamento(): Promise<void> {
+  await AsyncStorage.removeItem(TREINO_EM_ANDAMENTO_KEY);
+}
+
+export async function limparStorage(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    TREINOS_KEY, HISTORICO_KEY, PERFIL_KEY, RECORDES_KEY,
+    MEDIDAS_KEY, AGUA_CONFIG_KEY, AGUA_REGISTRO_KEY, CARDIO_KEY,
+    EXERCICIOS_CUSTOM_KEY, TREINO_EM_ANDAMENTO_KEY,
+  ]);
 }

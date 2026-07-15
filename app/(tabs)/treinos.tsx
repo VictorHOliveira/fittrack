@@ -95,7 +95,7 @@ export default function TreinosScreen() {
                           <Text style={styles.cardNome}>{item.nome}</Text>
                           <Text style={styles.cardDesc}>
                             {item.exercicios.length} exercício(s)
-                            {item.diaSemana ? ` • ${item.diaSemana}` : ''}
+                            {item.diaSemana && (Array.isArray(item.diaSemana) ? item.diaSemana.length > 0 : true) ? ` • ${Array.isArray(item.diaSemana) ? item.diaSemana.join(', ') : item.diaSemana}` : ''}
                           </Text>
                         </View>
                         <View style={styles.cardAcoes}>

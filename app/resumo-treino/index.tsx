@@ -6,6 +6,7 @@ import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { carregarPerfil, carregarHistorico } from '../../src/services/firestoreService';
 import { PerfilUsuario, TreinoCompleto } from '../../src/types';
+import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
 import exerciciosData from '../../src/data/exercicios.json';
 
 const COR_FUNDO = '#1a1a2e';
@@ -34,6 +35,14 @@ export default function ResumoTreinoScreen() {
   const [treino, setTreino] = useState<TreinoCompleto | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [compartilhando, setCompartilhando] = useState(false);
+  const [customLoaded, setCustomLoaded] = useState(false);
+
+  useEffect(() => {
+    carregarExerciciosPersonalizados().then(custom => {
+      custom.forEach(e => { exercicioNomeMap[e.id] = e.nome; });
+      setCustomLoaded(true);
+    });
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -44,7 +53,7 @@ export default function ResumoTreinoScreen() {
         ]);
         setPerfil(dadosPerfil);
         if (historico.length > 0) {
-          setTreino(historico[historico.length - 1]);
+          setTreino(historico[0]);
         }
       } finally {
         setCarregando(false);

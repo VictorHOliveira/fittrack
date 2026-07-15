@@ -6,3 +6,23 @@ Waiting on http://localhost:8081
 
 Logs for your project will appear below.
 Android Bundled 9438ms index.js (1784 modules)
+
+<--- Last few GCs --->
+
+[18088:00000127DD820000] 90298794 ms: Scavenge (during sweeping) 4079.6 (4090.1) -> 4073.6 (4091.1) MB, pooled: 0.0 MB, 6.64 / 0.00 ms (average mu = 0.307, current mu = 0.257) allocation failure; 
+[18088:00000127DD820000] 90300049 ms: Mark-Compact (reduce) 4086.3 (4097.1) -> 4074.7 (4078.8) MB, pooled: 0.0 MB, 112.67 / 0.00 ms (+ 1005.0 ms in 201 steps since start of marking, biggest step 5.9 ms, walltime since start of marking 1233 ms) (average mu
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF7DA854E56 node::OnFatalError+1318
+ 2: 00007FF7DB3F4137 v8::Function::NewInstance+423
+ 3: 00007FF7DB202547 v8::base::AddressSpaceReservation::AddressSpaceReservation+328087
+ 4: 00007FF7DB206457 v8::base::AddressSpaceReservation::AddressSpaceReservation+344231
+ 5: 00007FF7DB218058 v8::internal::StrongRootAllocatorBase::deallocate_impl+19176
+ 6: 00007FF7DB21788B v8::internal::StrongRootAllocatorBase::deallocate_impl+17179
+ 7: 00007FF7DC9980ED v8::platform::DelayedTaskQueue::Terminate+10478877
+ 8: 00007FF7DB1FFE78 v8::base::AddressSpaceReservation::AddressSpaceReservation+318152
+ 9: 00007FF7DB1FFB86 v8::base::AddressSpaceReservation::AddressSpaceReservation+317398
+10: 00007FF7DB2893E9 v8::Unlocker::~Unlocker+9081
+11: 00007FF7DAE29D62 v8::String::Utf8Value::~Utf8Value+151538
+12: 000001279FE7B4FA 

@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TreinoCompleto } from '../../types';
+import { carregarExerciciosPersonalizados } from '../../services/firestoreService';
 import exerciciosData from '../../data/exercicios.json';
 
 const COR_FUNDO = '#1a1a2e';
@@ -37,6 +39,14 @@ function formatarDuracao(minutos: number): string {
 
 export default function DetalheTreinoModal({ visible, data, historico, onClose }: Props) {
   const treinosDoDia = historico.filter(t => t.dataExecucao.split('T')[0] === data);
+  const [customLoaded, setCustomLoaded] = useState(false);
+
+  useEffect(() => {
+    carregarExerciciosPersonalizados().then(custom => {
+      custom.forEach(e => { exercicioNomeMap[e.id] = e.nome; });
+      setCustomLoaded(true);
+    });
+  }, []);
 
   return (
     <Modal

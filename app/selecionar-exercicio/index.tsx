@@ -5,17 +5,16 @@ import { Ionicons } from '@expo/vector-icons';
 import ListaExercicios from '../../src/components/ListaExercicios';
 import DetalhesExercicioModal from '../../src/components/DetalhesExercicioModal';
 import { confirmarSelecao } from '../../src/utils/selecionarExercicioState';
-import exerciciosData from '../../src/data/exercicios.json';
+import { Exercicio } from '../../src/types';
 
 const COR_FUNDO = '#1a1a2e';
 const COR_PRIMARIA = '#6C63FF';
-const COR_CARD = '#16213e';
 
 export default function SelecionarExercicioScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [exercicioDetalheId, setExercicioDetalheId] = useState<string | null>(null);
+  const [exercicioDetalhe, setExercicioDetalhe] = useState<Exercicio | null>(null);
 
   const toggle = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -51,10 +50,6 @@ export default function SelecionarExercicioScreen() {
     });
   }, [navigation, selectedIds]);
 
-  const exercicioDetalhe = exercicioDetalheId
-    ? exerciciosData.find((e: any) => e.id === exercicioDetalheId) ?? null
-    : null;
-
   return (
     <View style={styles.container}>
       <ListaExercicios
@@ -62,14 +57,15 @@ export default function SelecionarExercicioScreen() {
         idsSelecionados={selectedIds}
         mostrarPR={false}
         mostrarDescricao={false}
-        onDetalhe={setExercicioDetalheId}
+        onDetalhe={setExercicioDetalhe}
         onSelect={toggle}
+        onCriarExercicio={() => router.push('/criar-exercicio')}
       />
 
       <DetalhesExercicioModal
         exercicio={exercicioDetalhe}
         visible={!!exercicioDetalhe}
-        onClose={() => setExercicioDetalheId(null)}
+        onClose={() => setExercicioDetalhe(null)}
       />
     </View>
   );

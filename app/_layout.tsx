@@ -148,6 +148,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="iniciar-treino/index"
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: COR_FUNDO },
+              headerTintColor: '#fff',
+              headerTitle: 'Iniciar Treino',
+            }}
+          />
+          <Stack.Screen
             name="agua"
             options={{ headerShown: false }}
           />
