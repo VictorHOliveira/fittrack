@@ -47,7 +47,8 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"app/**/*.{ts,tsx}\"",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "eas-build-pre-install": "node -e \"if(process.env.GOOGLE_SERVICES_JSON){require('fs').writeFileSync('google-services.json',process.env.GOOGLE_SERVICES_JSON)}\""
   },
   "jest": {
     "preset": "jest-expo",

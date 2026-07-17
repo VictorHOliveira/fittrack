@@ -22,9 +22,6 @@
       },
       "env": {
         "GOOGLE_SERVICES_JSON": "@google-services.json"
-      },
-      "hooks": {
-        "postexpo-prebuild": "echo $GOOGLE_SERVICES_JSON > google-services.json"
       }
     }
   }
