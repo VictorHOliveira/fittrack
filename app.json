@@ -41,7 +41,8 @@
       "expo-splash-screen",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "expo-audio"
+      "expo-audio",
+      "./plugins/withCmakeFix"
     ],
     "extra": {
       "router": {},
