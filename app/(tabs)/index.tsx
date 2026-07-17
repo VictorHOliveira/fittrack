@@ -3,17 +3,24 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos, useHistorico } from '../../src/hooks/useTreinos';
-import { carregarPerfil, carregarPerfilLocal } from '../../src/services/firestoreService';
+import {
+  carregarPerfil,
+  carregarPerfilLocal,
+} from '../../src/services/firestoreService';
 import { PerfilUsuario } from '../../src/types';
-import { carregarTreinoEmAndamento, TreinoEmAndamento, formatarDuracao } from '../../src/utils/storage';
+import {
+  carregarTreinoEmAndamento,
+  TreinoEmAndamento,
+  formatarDuracao,
+} from '../../src/utils/storage';
 import PainelAgua from '../../src/components/agua/PainelAgua';
 import PainelCardio from '../../src/components/cardio/PainelCardio';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
-const COR_AVISO = '#ff9800';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
 function getMsgHorario(): string {
   const h = new Date().getHours();
@@ -26,8 +33,11 @@ function normalizarPerfil(p: PerfilUsuario): PerfilUsuario {
   return {
     ...p,
     nivel: p.nivel || 'iniciante',
-    objetivo: Array.isArray(p.objetivo) ? p.objetivo : p.objetivo ? [p.objetivo] : [],
-    gorduraCorporal: p.gorduraCorporal ?? '',
+    objetivo: Array.isArray(p.objetivo)
+      ? p.objetivo
+      : p.objetivo
+        ? [p.objetivo]
+        : [],
   };
 }
 
@@ -36,7 +46,8 @@ export default function HomeScreen() {
   const { treinos } = useTreinos();
   const { historico } = useHistorico();
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
-  const [treinoEmAndamento, setTreinoEmAndamento] = useState<TreinoEmAndamento | null>(null);
+  const [treinoEmAndamento, setTreinoEmAndamento] =
+    useState<TreinoEmAndamento | null>(null);
   const [tempoAndamento, setTempoAndamento] = useState(0);
 
   useFocusEffect(
@@ -46,21 +57,26 @@ export default function HomeScreen() {
         setPerfil(local ? normalizarPerfil(local) : null);
 
         const remote = await carregarPerfil();
-        if (JSON.stringify(local) !== JSON.stringify(remote)) setPerfil(remote ? normalizarPerfil(remote) : null);
+        if (JSON.stringify(local) !== JSON.stringify(remote))
+          setPerfil(remote ? normalizarPerfil(remote) : null);
 
         const emAndamento = await carregarTreinoEmAndamento();
         setTreinoEmAndamento(emAndamento);
         if (emAndamento) {
-          setTempoAndamento(Math.floor((Date.now() - emAndamento.tempoInicio) / 1000));
+          setTempoAndamento(
+            Math.floor((Date.now() - emAndamento.tempoInicio) / 1000),
+          );
         }
       })();
-    }, [])
+    }, []),
   );
 
   useEffect(() => {
     if (!treinoEmAndamento) return;
     const interval = setInterval(() => {
-      setTempoAndamento(Math.floor((Date.now() - treinoEmAndamento.tempoInicio) / 1000));
+      setTempoAndamento(
+        Math.floor((Date.now() - treinoEmAndamento.tempoInicio) / 1000),
+      );
     }, 1000);
     return () => clearInterval(interval);
   }, [treinoEmAndamento]);
@@ -69,10 +85,12 @@ export default function HomeScreen() {
 
   const nomeUsuario = perfil?.nome?.trim() || 'Atleta';
   const nomeTreinoAndamento = treinoEmAndamento
-    ? treinos.find(t => t.id === treinoEmAndamento.treinoId)?.nome || 'Treino'
+    ? treinos.find((t) => t.id === treinoEmAndamento.treinoId)?.nome || 'Treino'
     : '';
   const exerciciosConcluidos = treinoEmAndamento
-    ? treinoEmAndamento.exerciciosExecucao.filter((ex: any) => ex.series.some((s: any) => s.concluida)).length
+    ? treinoEmAndamento.exerciciosExecucao.filter((ex: any) =>
+        ex.series.some((s: any) => s.concluida),
+      ).length
     : 0;
   const totalExercicios = treinoEmAndamento?.exerciciosExecucao.length || 0;
 
@@ -84,7 +102,10 @@ export default function HomeScreen() {
           <Text style={styles.nome}>{nomeUsuario}</Text>
         </View>
         <View style={styles.headerIcons}>
-          <TouchableOpacity onPress={() => router.push('/perfil')} style={styles.headerIcon}>
+          <TouchableOpacity
+            onPress={() => router.push('/perfil')}
+            style={styles.headerIcon}
+          >
             <Ionicons name="person-circle" size={36} color={COR_PRIMARIA} />
           </TouchableOpacity>
         </View>
@@ -94,7 +115,8 @@ export default function HomeScreen() {
         <View style={styles.perfilBadge}>
           <Ionicons name="fitness" size={14} color={COR_PRIMARIA} />
           <Text style={styles.perfilBadgeTexto}>
-            {perfil.nivel.charAt(0).toUpperCase() + perfil.nivel.slice(1)} • {perfil.objetivo?.join(', ') || 'Treino'}
+            {perfil.nivel.charAt(0).toUpperCase() + perfil.nivel.slice(1)} •{' '}
+            {perfil.objetivo?.join(', ') || 'Treino'}
           </Text>
         </View>
       )}
@@ -132,7 +154,9 @@ export default function HomeScreen() {
       {diasSeguidos && (
         <View style={styles.badgeConquista}>
           <Ionicons name="trophy" size={18} color="#FFD700" />
-          <Text style={styles.badgeTexto}>Parabéns! Você treinou 3+ vezes essa semana!</Text>
+          <Text style={styles.badgeTexto}>
+            Parabéns! Você treinou 3+ vezes essa semana!
+          </Text>
         </View>
       )}
 
@@ -169,7 +193,12 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.painelFlutuanteTouch}
             activeOpacity={0.8}
-            onPress={() => router.push({ pathname: '/treino/executar/[id]', params: { id: treinoEmAndamento.treinoId } })}
+            onPress={() =>
+              router.push({
+                pathname: '/treino/executar/[id]',
+                params: { id: treinoEmAndamento.treinoId },
+              })
+            }
           >
             <View style={styles.painelIconeContainer}>
               <Ionicons name="timer" size={20} color="#ff9800" />
@@ -177,11 +206,14 @@ export default function HomeScreen() {
             <View style={styles.painelInfo}>
               <Text style={styles.painelTitulo}>Treino em Andamento</Text>
               <Text style={styles.painelSubtitulo}>
-                {nomeTreinoAndamento}  •  {exerciciosConcluidos}/{totalExercicios} exercícios
+                {nomeTreinoAndamento} • {exerciciosConcluidos}/{totalExercicios}{' '}
+                exercícios
               </Text>
             </View>
             <View style={styles.painelDireita}>
-              <Text style={styles.painelTempo}>{formatarDuracao(tempoAndamento)}</Text>
+              <Text style={styles.painelTempo}>
+                {formatarDuracao(tempoAndamento)}
+              </Text>
               <Ionicons name="play" size={18} color="#fff" />
             </View>
           </TouchableOpacity>

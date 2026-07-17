@@ -1,10 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CardBase from './CardBase';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
+import { COR_PRIMARIA, COR_CARD, COR_SUCESSO } from '../../utils/theme';
 
 const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
@@ -18,8 +15,6 @@ interface Props {
 }
 
 export default function CardSemanal(props: Props) {
-  const treinosHoje = props.diasTreinados[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ? 1 : 0;
-
   return (
     <CardBase>
       <View style={styles.header}>
@@ -57,7 +52,9 @@ export default function CardSemanal(props: Props) {
             const ativo = props.diasTreinados[i] || false;
             return (
               <View key={i} style={[styles.diaItem, ativo && styles.diaAtivo]}>
-                <Text style={[styles.diaTexto, ativo && styles.diaTextoAtivo]}>{dia}</Text>
+                <Text style={[styles.diaTexto, ativo && styles.diaTextoAtivo]}>
+                  {dia}
+                </Text>
               </View>
             );
           })}
@@ -69,20 +66,44 @@ export default function CardSemanal(props: Props) {
 
 const styles = StyleSheet.create({
   header: { alignItems: 'center', marginBottom: 16 },
-  titulo: { fontSize: 14, color: '#fff', fontWeight: 'bold', letterSpacing: 2, marginTop: 6 },
+  titulo: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: 'bold',
+    letterSpacing: 2,
+    marginTop: 6,
+  },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   gridCard: {
-    width: '47%', backgroundColor: COR_CARD, borderRadius: 12, padding: 12,
-    alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#333',
+    width: '47%',
+    backgroundColor: COR_CARD,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   gridNumero: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
   gridLabel: { fontSize: 10, color: '#888', fontWeight: '600' },
   diasSection: { marginBottom: 4 },
-  diasLabel: { fontSize: 11, color: '#888', fontWeight: '600', letterSpacing: 1, marginBottom: 10 },
+  diasLabel: {
+    fontSize: 11,
+    color: '#888',
+    fontWeight: '600',
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
   diasRow: { flexDirection: 'row', justifyContent: 'space-between' },
   diaItem: {
-    width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COR_CARD, borderWidth: 1, borderColor: '#333',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COR_CARD,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   diaAtivo: { backgroundColor: COR_SUCESSO, borderColor: COR_SUCESSO },
   diaTexto: { fontSize: 9, color: '#666', fontWeight: '600' },

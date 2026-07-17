@@ -1,9 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_TEXTO = '#ffffff';
+import { COR_PRIMARIA } from '../../src/utils/theme';
 
 export default function LayoutTabs() {
   return (

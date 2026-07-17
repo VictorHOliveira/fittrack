@@ -1,33 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos } from '../../src/hooks/useTreinos';
-import { Treino, Exercicio } from '../../src/types';
-import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
-import exerciciosData from '../../src/data/exercicios.json';
+import { Treino } from '../../src/types';
+import { useExercicios } from '../../src/hooks/useExercicios';
 import ExercicioGif from '../../src/components/ExercicioGif';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
 export default function TreinoDetalheScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { treinos } = useTreinos();
   const [treino, setTreino] = useState<Treino | null>(null);
-  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
-
-  useFocusEffect(
-    useCallback(() => {
-      carregarExerciciosPersonalizados().then(setExerciciosCustom);
-    }, [])
-  );
+  const { find } = useExercicios();
 
   useEffect(() => {
-    const t = treinos.find(t => t.id === id);
+    const t = treinos.find((t) => t.id === id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (t) setTreino(t);
   }, [treinos, id]);
 
@@ -43,12 +44,23 @@ export default function TreinoDetalheScreen() {
     <View style={styles.container}>
       <View style={styles.info}>
         <Text style={styles.titulo}>{treino.nome}</Text>
-        {treino.descricao ? <Text style={styles.descricao}>{treino.descricao}</Text> : null}
-        {treino.diaSemana && (Array.isArray(treino.diaSemana) ? treino.diaSemana.length > 0 : true) ? (
-          <Text style={styles.dia}>{Array.isArray(treino.diaSemana) ? treino.diaSemana.join(', ') : treino.diaSemana}</Text>
+        {treino.descricao ? (
+          <Text style={styles.descricao}>{treino.descricao}</Text>
+        ) : null}
+        {treino.diaSemana &&
+        (Array.isArray(treino.diaSemana)
+          ? treino.diaSemana.length > 0
+          : true) ? (
+          <Text style={styles.dia}>
+            {Array.isArray(treino.diaSemana)
+              ? treino.diaSemana.join(', ')
+              : treino.diaSemana}
+          </Text>
         ) : null}
         <Text style={styles.totalExercicios}>
-          {treino.exercicios.length} exercício(s) • {treino.exercicios.reduce((acc, e) => acc + e.series.length, 0)} séries totais
+          {treino.exercicios.length} exercício(s) •{' '}
+          {treino.exercicios.reduce((acc, e) => acc + e.series.length, 0)}{' '}
+          séries totais
         </Text>
       </View>
 
@@ -59,15 +71,23 @@ export default function TreinoDetalheScreen() {
         keyExtractor={(_, i) => i.toString()}
         contentContainerStyle={styles.lista}
         renderItem={({ item }) => {
-          const info = [...exerciciosData, ...exerciciosCustom].find(e => e.id === item.exercicioId);
+          const info = find(item.exercicioId);
           const nomeIcone = info?.icone || 'fitness';
           return (
             <View style={styles.card}>
               <View style={styles.cardContent}>
-                <ExercicioGif exercicioId={item.exercicioId} icone={nomeIcone} corGrupo={info?.corGrupo || COR_PRIMARIA} size={44} borderRadius={12} />
+                <ExercicioGif
+                  exercicioId={item.exercicioId}
+                  icone={nomeIcone}
+                  corGrupo={info?.corGrupo || COR_PRIMARIA}
+                  size={44}
+                  borderRadius={12}
+                />
                 <View style={styles.cardInfo}>
                   <View style={styles.cardHeader}>
-                    <Text style={styles.cardNome}>{info?.nome || item.exercicioId}</Text>
+                    <Text style={styles.cardNome}>
+                      {info?.nome || item.exercicioId}
+                    </Text>
                     <Text style={styles.cardMusculo}>{info?.musculo}</Text>
                   </View>
                   <Text style={styles.cardSeries}>

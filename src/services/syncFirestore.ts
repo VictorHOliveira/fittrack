@@ -9,10 +9,6 @@ import {
   carregarRegistroAgua,
   carregarCardio,
 } from '../utils/storage';
-import type {
-  Treino, TreinoCompleto, PerfilUsuario, RecordesMap,
-  MedidaCorporal, ConfigAgua, RegistroAguaDiario, CardioEntry,
-} from '../types';
 
 function userRef(uid: string) {
   return getDb().collection(USERS_COLLECTION).doc(uid);

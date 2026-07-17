@@ -2,10 +2,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAgua } from '../../hooks/useAgua';
+import { COR_CARD } from '../../utils/theme';
 
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
 const COR_AGUA = '#00BFFF';
 
 export default function PainelAgua() {
@@ -31,7 +29,9 @@ export default function PainelAgua() {
         <View
           style={[
             styles.barra,
-            { width: `${Math.min((totalCoposHoje / config.metaDiaria) * 100, 100)}%` },
+            {
+              width: `${Math.min((totalCoposHoje / config.metaDiaria) * 100, 100)}%`,
+            },
           ]}
         />
       </View>

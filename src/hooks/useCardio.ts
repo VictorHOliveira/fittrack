@@ -1,14 +1,23 @@
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { CardioEntry, TipoCardio } from '../types';
-import { carregarCardio, salvarCardioEntry, deletarCardioEntry, carregarCardioLocal } from '../services/firestoreService';
+import {
+  carregarCardio,
+  salvarCardioEntry,
+  deletarCardioEntry,
+  carregarCardioLocal,
+} from '../services/firestoreService';
 import { gerarId } from '../utils/storage';
 
 function getHoje(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-export const TIPOS_CARDIO: { valor: TipoCardio; label: string; icon: string }[] = [
+export const TIPOS_CARDIO: {
+  valor: TipoCardio;
+  label: string;
+  icon: string;
+}[] = [
   { valor: 'bicicleta', label: 'Bicicleta', icon: 'bicycle' },
   { valor: 'caminhada', label: 'Caminhada', icon: 'walk' },
   { valor: 'corrida', label: 'Corrida', icon: 'pulse' },
@@ -32,8 +41,7 @@ export function useCardio() {
 
       const dadosR = await carregarCardio();
       if (JSON.stringify(dados) !== JSON.stringify(dadosR)) setEntries(dadosR);
-    } catch (e) {
-      console.warn('Erro ao carregar cardio:', e);
+    } catch {
       setEntries([]);
       setCarregando(false);
     }
@@ -42,10 +50,10 @@ export function useCardio() {
   useFocusEffect(
     useCallback(() => {
       carregar();
-    }, [carregar])
+    }, [carregar]),
   );
 
-  const entriesHoje = entries.filter(e => e.data === getHoje());
+  const entriesHoje = entries.filter((e) => e.data === getHoje());
 
   const adicionar = async (
     tipo: TipoCardio,
@@ -67,12 +75,12 @@ export function useCardio() {
       timestamp: new Date().toISOString(),
     };
     await salvarCardioEntry(entry);
-    setEntries(prev => [...prev, entry]);
+    setEntries((prev) => [...prev, entry]);
   };
 
   const deletar = async (id: string) => {
     await deletarCardioEntry(id);
-    setEntries(prev => prev.filter(e => e.id !== id));
+    setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
   return {

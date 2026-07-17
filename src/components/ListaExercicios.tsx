@@ -1,31 +1,18 @@
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity } from 'react-native';
+import { useState, useMemo, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRecordes } from '../hooks/useRecordes';
-import exerciciosData from '../data/exercicios.json';
-import { carregarExerciciosPersonalizados } from '../services/firestoreService';
+import { useExercicios } from '../hooks/useExercicios';
 import { Exercicio } from '../types';
+import { COR_PRIMARIA, COR_FUNDO, COR_CARD, ICON_MAP } from '../utils/theme';
 import ExercicioGif from './ExercicioGif';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-
-const ICON_MAP: Record<string, string> = {
-  'body': 'body',
-  'resize': 'resize',
-  'walk': 'walk',
-  'footsteps': 'footsteps',
-  'barbell': 'barbell',
-  'man': 'man',
-  'flash': 'flash',
-  'hand-left': 'hand-left',
-  'fitness': 'fitness',
-  'shield': 'shield',
-  'heart': 'heart',
-  'hand-right': 'hand-right',
-};
 
 interface Props {
   onSelect?: (exercicioId: string) => void;
@@ -49,146 +36,204 @@ export default function ListaExercicios({
   mostrarDescricao = true,
 }: Props) {
   const { recordes } = useRecordes();
+  const { exercicios: todosExercicios } = useExercicios();
   const [busca, setBusca] = useState('');
   const [musculoFiltro, setMusculoFiltro] = useState('');
-  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
-
-  useFocusEffect(
-    useCallback(() => {
-      carregarExerciciosPersonalizados().then(setExerciciosCustom);
-    }, [])
+  const MUSCULOS = useMemo(
+    () => [...new Set(todosExercicios.map((e) => e.musculo))],
+    [todosExercicios],
   );
 
-  const todosExercicios = [...exerciciosData, ...exerciciosCustom];
-  const MUSCULOS = [...new Set(todosExercicios.map(e => e.musculo))];
+  const exerciciosFiltrados = useMemo(
+    () =>
+      todosExercicios.filter((ex) => {
+        const matchBusca = ex.nome.toLowerCase().includes(busca.toLowerCase());
+        const matchMusculo = !musculoFiltro || ex.musculo === musculoFiltro;
+        return matchBusca && matchMusculo;
+      }),
+    [todosExercicios, busca, musculoFiltro],
+  );
 
-  const exerciciosFiltrados = todosExercicios.filter(ex => {
-    const matchBusca = ex.nome.toLowerCase().includes(busca.toLowerCase());
-    const matchMusculo = !musculoFiltro || ex.musculo === musculoFiltro;
-    return matchBusca && matchMusculo;
-  });
+  const renderItem = useCallback(
+    ({ item }: { item: Exercicio }) => {
+      const pr = recordes[item.id];
+      const nomeIcone = ICON_MAP[item.icone] || 'fitness';
+      const jaAdicionado = idsJaAdicionados.includes(item.id);
+      const estaSelecionado = idsSelecionados?.has(item.id);
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.lista}
-      showsVerticalScrollIndicator={false}
-    >
-      <TextInput
-        style={styles.input}
-        value={busca}
-        onChangeText={setBusca}
-        placeholder="Buscar exercício..."
-        placeholderTextColor="#555"
-      />
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtros}
-      >
-        {MUSCULOS.map(musculo => (
-          <TouchableOpacity
-            key={musculo}
-            style={[
-              styles.filtro,
-              musculoFiltro === musculo && styles.filtroAtivo,
-            ]}
-            onPress={() => setMusculoFiltro(musculoFiltro === musculo ? '' : musculo)}
-          >
-            <Text style={[styles.filtroTexto, musculoFiltro === musculo && styles.filtroTextoAtivo]}>
-              {musculo}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {onCriarExercicio && (
-        <TouchableOpacity style={styles.criarBtn} activeOpacity={0.8} onPress={onCriarExercicio}>
-          <Ionicons name="add-circle" size={20} color="#fff" />
-          <Text style={styles.criarBtnTexto}>Criar Exercício</Text>
-        </TouchableOpacity>
-      )}
-
-      {exerciciosFiltrados.map(item => {
-        const pr = recordes[item.id];
-        const nomeIcone = ICON_MAP[item.icone] || 'fitness';
-        const jaAdicionado = idsJaAdicionados.includes(item.id);
-        const estaSelecionado = idsSelecionados?.has(item.id);
-
-        const card = (
-          <View key={item.id} style={[styles.card, selecionaveis && styles.cardSelecionavel, estaSelecionado && styles.cardSelecionado]}>
-            <ExercicioGif exercicioId={item.id} icone={nomeIcone} corGrupo={item.corGrupo} />
-            <View style={styles.cardConteudo}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardNome}>{item.nome}</Text>
-                {item.personalizado && (
-                  <View style={styles.customBadge}>
-                    <Ionicons name="create" size={10} color="#fff" />
-                    <Text style={styles.customBadgeTexto}>Custom</Text>
-                  </View>
-                )}
-                {mostrarPR && pr && (
-                  <View style={styles.prBadge}>
-                    <Ionicons name="trophy" size={12} color="#FFD700" />
-                    <Text style={styles.prBadgeTexto}>{pr.carga}kg</Text>
-                  </View>
-                )}
-                {onDetalhe && (
-                  <TouchableOpacity
-                    style={styles.infoBtn}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onDetalhe(item);
-                    }}
-                  >
-                    <Ionicons name="information-circle-outline" size={18} color="#888" />
-                  </TouchableOpacity>
-                )}
-                {jaAdicionado && (
-                  <View style={styles.checkBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                  </View>
-                )}
-                {estaSelecionado && (
-                  <View style={styles.checkBadge}>
-                    <Ionicons name="checkmark-circle" size={16} color={COR_PRIMARIA} />
-                  </View>
-                )}
-              </View>
-              <Text style={styles.cardMusculo}>{item.musculo}</Text>
-              {mostrarDescricao && (
-                <Text style={styles.cardDescricao} numberOfLines={2}>{item.descricao}</Text>
+      const card = (
+        <View
+          style={[
+            styles.card,
+            selecionaveis && styles.cardSelecionavel,
+            estaSelecionado && styles.cardSelecionado,
+          ]}
+        >
+          <ExercicioGif
+            exercicioId={item.id}
+            icone={nomeIcone}
+            corGrupo={item.corGrupo}
+          />
+          <View style={styles.cardConteudo}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardNome}>{item.nome}</Text>
+              {item.personalizado && (
+                <View style={styles.customBadge}>
+                  <Ionicons name="create" size={10} color="#fff" />
+                  <Text style={styles.customBadgeTexto}>Custom</Text>
+                </View>
               )}
-              {item.equipamento && (
-                <Text style={styles.cardEquipamento}>
-                  <Ionicons name="construct" size={11} color="#555" /> {item.equipamento}
-                </Text>
+              {mostrarPR && pr && (
+                <View style={styles.prBadge}>
+                  <Ionicons name="trophy" size={12} color="#FFD700" />
+                  <Text style={styles.prBadgeTexto}>{pr.carga}kg</Text>
+                </View>
+              )}
+              {onDetalhe && (
+                <TouchableOpacity
+                  style={styles.infoBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onDetalhe(item);
+                  }}
+                >
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={18}
+                    color="#888"
+                  />
+                </TouchableOpacity>
+              )}
+              {jaAdicionado && (
+                <View style={styles.checkBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                </View>
+              )}
+              {estaSelecionado && (
+                <View style={styles.checkBadge}>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={COR_PRIMARIA}
+                  />
+                </View>
               )}
             </View>
+            <Text style={styles.cardMusculo}>{item.musculo}</Text>
+            {mostrarDescricao && (
+              <Text style={styles.cardDescricao} numberOfLines={2}>
+                {item.descricao}
+              </Text>
+            )}
+            {item.equipamento && (
+              <Text style={styles.cardEquipamento}>
+                <Ionicons name="construct" size={11} color="#555" />{' '}
+                {item.equipamento}
+              </Text>
+            )}
           </View>
+        </View>
+      );
+
+      if (selecionaveis && onSelect) {
+        return (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => onSelect(item.id)}
+          >
+            {card}
+          </TouchableOpacity>
         );
+      }
 
-        if (selecionaveis && onSelect) {
-          return (
-            <TouchableOpacity key={item.id} activeOpacity={0.7} onPress={() => onSelect(item.id)}>
-              {card}
+      if (onDetalhe) {
+        return (
+          <TouchableOpacity activeOpacity={0.7} onPress={() => onDetalhe(item)}>
+            {card}
+          </TouchableOpacity>
+        );
+      }
+
+      return card;
+    },
+    [
+      recordes,
+      idsJaAdicionados,
+      idsSelecionados,
+      selecionaveis,
+      onSelect,
+      onDetalhe,
+      mostrarPR,
+      mostrarDescricao,
+    ],
+  );
+
+  const ListHeader = useMemo(
+    () => (
+      <View>
+        <TextInput
+          style={styles.input}
+          value={busca}
+          onChangeText={setBusca}
+          placeholder="Buscar exercício..."
+          placeholderTextColor="#555"
+        />
+
+        <FlatList
+          horizontal
+          data={MUSCULOS}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtros}
+          keyExtractor={(m) => m}
+          renderItem={({ item: musculo }) => (
+            <TouchableOpacity
+              style={[
+                styles.filtro,
+                musculoFiltro === musculo && styles.filtroAtivo,
+              ]}
+              onPress={() =>
+                setMusculoFiltro(musculoFiltro === musculo ? '' : musculo)
+              }
+            >
+              <Text
+                style={[
+                  styles.filtroTexto,
+                  musculoFiltro === musculo && styles.filtroTextoAtivo,
+                ]}
+              >
+                {musculo}
+              </Text>
             </TouchableOpacity>
-          );
-        }
+          )}
+        />
 
-        if (onDetalhe) {
-          return (
-            <TouchableOpacity key={item.id} activeOpacity={0.7} onPress={() => onDetalhe(item.id)}>
-              {card}
-            </TouchableOpacity>
-          );
-        }
+        {onCriarExercicio && (
+          <TouchableOpacity
+            style={styles.criarBtn}
+            activeOpacity={0.8}
+            onPress={onCriarExercicio}
+          >
+            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Text style={styles.criarBtnTexto}>Criar Exercício</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    ),
+    [busca, musculoFiltro, MUSCULOS, onCriarExercicio],
+  );
 
-        return card;
-      })}
-    </ScrollView>
+  return (
+    <FlatList
+      style={styles.container}
+      contentContainerStyle={styles.lista}
+      data={exerciciosFiltrados}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      ListHeaderComponent={ListHeader}
+      removeClippedSubviews
+      showsVerticalScrollIndicator={false}
+    />
   );
 }
 

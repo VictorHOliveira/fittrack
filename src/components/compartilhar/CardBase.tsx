@@ -1,9 +1,7 @@
 import { ReactNode, forwardRef } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const COR_FUNDO = '#1a1a2e';
-const COR_PRIMARIA = '#6C63FF';
+import { COR_FUNDO, COR_PRIMARIA } from '../../utils/theme';
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = Math.min(SCREEN_W - 40, 400);
 
@@ -20,6 +18,7 @@ const CardBase = forwardRef<View, CardBaseProps>(({ children }, ref) => (
     </View>
   </View>
 ));
+CardBase.displayName = 'CardBase';
 
 const styles = StyleSheet.create({
   container: {

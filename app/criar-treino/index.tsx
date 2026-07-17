@@ -1,21 +1,39 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+} from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos } from '../../src/hooks/useTreinos';
-import { Treino, ExercicioTreino, Exercicio } from '../../src/types';
-import { gerarId } from '../../src/utils/storage';
-import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
+import { ExercicioTreino } from '../../src/types';
 import { pegarSelecionados } from '../../src/utils/selecionarExercicioState';
-import exerciciosData from '../../src/data/exercicios.json';
+import { useExercicios } from '../../src/hooks/useExercicios';
+import {
+  criarExercicioTreino,
+  construirTreino,
+} from '../../src/hooks/useCriarTreino';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
-
-const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const DIAS_SEMANA = [
+  'Segunda',
+  'Terça',
+  'Quarta',
+  'Quinta',
+  'Sexta',
+  'Sábado',
+  'Domingo',
+];
 
 export default function CriarTreinoScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -26,26 +44,27 @@ export default function CriarTreinoScreen() {
   const [descricao, setDescricao] = useState('');
   const [diaSemana, setDiaSemana] = useState<string[]>([]);
   const [exercicios, setExercicios] = useState<ExercicioTreino[]>([]);
-  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
+  const { find } = useExercicios();
   const treinoCarregado = useRef(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      carregarExerciciosPersonalizados().then(setExerciciosCustom);
-    }, [])
-  );
+  const adicionarExercicio = (exercicioId: string) => {
+    setExercicios((prev) => [...prev, criarExercicioTreino(exercicioId)]);
+  };
 
   useEffect(() => {
     if (id && !treinoCarregado.current) {
-      const treino = treinos.find(t => t.id === id);
+      const treino = treinos.find((t) => t.id === id);
       if (treino) {
         treinoCarregado.current = true;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- sync treino data from route params
         setNome(treino.nome);
         setDescricao(treino.descricao || '');
         setDiaSemana(
           Array.isArray(treino.diaSemana)
             ? treino.diaSemana
-            : treino.diaSemana ? [treino.diaSemana] : []
+            : treino.diaSemana
+              ? [treino.diaSemana]
+              : [],
         );
         setExercicios(treino.exercicios);
       }
@@ -55,44 +74,23 @@ export default function CriarTreinoScreen() {
   useFocusEffect(
     useCallback(() => {
       const resultados = pegarSelecionados();
-      resultados.forEach(id => adicionarExercicio(id));
-    }, [])
+      resultados.forEach((id) => adicionarExercicio(id));
+    }, []),
   );
 
-  const adicionarExercicio = (exercicioId: string) => {
-    const novoExercicio: ExercicioTreino = {
-      exercicioId,
-      series: Array.from({ length: 3 }, (_, i) => ({
-        id: gerarId(),
-        numero: i + 1,
-        cargas: 0,
-        repeticoes: 12,
-        concluida: false,
-      })),
-      descanso: 60,
-    };
-    setExercicios(prev => [...prev, novoExercicio]);
-  };
-
   const removerExercicio = (index: number) => {
-    setExercicios(prev => prev.filter((_, i) => i !== index));
+    setExercicios((prev) => prev.filter((_, i) => i !== index));
   };
 
   const adicionarSerie = (exIndex: number) => {
-    setExercicios(prev => {
+    setExercicios((prev) => {
       const novos = [...prev];
       const ex = novos[exIndex];
       novos[exIndex] = {
         ...ex,
         series: [
           ...ex.series,
-          {
-            id: gerarId(),
-            numero: ex.series.length + 1,
-            cargas: 0,
-            repeticoes: 12,
-            concluida: false,
-          },
+          criarExercicioTreino(ex.exercicioId, 1).series[0],
         ],
       };
       return novos;
@@ -100,7 +98,7 @@ export default function CriarTreinoScreen() {
   };
 
   const removerSerie = (exIndex: number) => {
-    setExercicios(prev => {
+    setExercicios((prev) => {
       const novos = [...prev];
       const ex = novos[exIndex];
       if (ex.series.length <= 1) return novos;
@@ -122,21 +120,20 @@ export default function CriarTreinoScreen() {
       return;
     }
 
-    const treino: Treino = {
-      id: id || gerarId(),
-      nome: nome.trim(),
-      descricao: descricao.trim(),
+    const treino = construirTreino({
+      id,
+      nome,
+      descricao,
       diaSemana,
       exercicios,
-      criadoEm: new Date().toISOString(),
-    };
+    });
 
     await adicionarOuEditarTreino(treino);
     router.back();
   };
 
   const getExercicioInfo = (exercicioId: string) => {
-    return [...exerciciosData, ...exerciciosCustom].find(e => e.id === exercicioId);
+    return find(exercicioId);
   };
 
   return (
@@ -162,13 +159,27 @@ export default function CriarTreinoScreen() {
 
         <Text style={styles.label}>Dia da Semana</Text>
         <View style={styles.diasContainer}>
-          {DIAS_SEMANA.map(dia => (
+          {DIAS_SEMANA.map((dia) => (
             <TouchableOpacity
               key={dia}
-              style={[styles.diaBotao, diaSemana.includes(dia) && styles.diaBotaoAtivo]}
-              onPress={() => setDiaSemana(diaSemana.includes(dia) ? diaSemana.filter(d => d !== dia) : [...diaSemana, dia])}
+              style={[
+                styles.diaBotao,
+                diaSemana.includes(dia) && styles.diaBotaoAtivo,
+              ]}
+              onPress={() =>
+                setDiaSemana(
+                  diaSemana.includes(dia)
+                    ? diaSemana.filter((d) => d !== dia)
+                    : [...diaSemana, dia],
+                )
+              }
             >
-              <Text style={[styles.diaTexto, diaSemana.includes(dia) && styles.diaTextoAtivo]}>
+              <Text
+                style={[
+                  styles.diaTexto,
+                  diaSemana.includes(dia) && styles.diaTextoAtivo,
+                ]}
+              >
                 {dia.slice(0, 3)}
               </Text>
             </TouchableOpacity>
@@ -192,7 +203,9 @@ export default function CriarTreinoScreen() {
             <View key={exIndex} style={styles.exercicioCard}>
               <View style={styles.exercicioHeader}>
                 <View style={styles.exercicioInfo}>
-                  <Text style={styles.exercicioNome}>{info?.nome || ex.exercicioId}</Text>
+                  <Text style={styles.exercicioNome}>
+                    {info?.nome || ex.exercicioId}
+                  </Text>
                   <Text style={styles.exercicioMusculo}>{info?.musculo}</Text>
                 </View>
                 <TouchableOpacity onPress={() => removerExercicio(exIndex)}>
@@ -201,12 +214,20 @@ export default function CriarTreinoScreen() {
               </View>
 
               <View style={styles.seriesInfo}>
-                <Text style={styles.seriesLabel}>{ex.series.length} séries</Text>
+                <Text style={styles.seriesLabel}>
+                  {ex.series.length} séries
+                </Text>
                 <View style={styles.seriesBotoes}>
-                  <TouchableOpacity onPress={() => removerSerie(exIndex)} style={styles.botaoSerie}>
+                  <TouchableOpacity
+                    onPress={() => removerSerie(exIndex)}
+                    style={styles.botaoSerie}
+                  >
                     <Ionicons name="remove" size={18} color="#888" />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => adicionarSerie(exIndex)} style={styles.botaoSerie}>
+                  <TouchableOpacity
+                    onPress={() => adicionarSerie(exIndex)}
+                    style={styles.botaoSerie}
+                  >
                     <Ionicons name="add" size={18} color="#888" />
                   </TouchableOpacity>
                 </View>
@@ -218,7 +239,9 @@ export default function CriarTreinoScreen() {
 
       <TouchableOpacity style={styles.botaoSalvar} onPress={salvar}>
         <Ionicons name="checkmark-circle" size={24} color="#fff" />
-        <Text style={styles.botaoSalvarTexto}>{id ? 'Salvar Alterações' : 'Criar Treino'}</Text>
+        <Text style={styles.botaoSalvarTexto}>
+          {id ? 'Salvar Alterações' : 'Criar Treino'}
+        </Text>
       </TouchableOpacity>
     </View>
   );

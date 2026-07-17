@@ -1,33 +1,39 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Modal } from 'react-native';
+import { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  TouchableOpacity,
+  Modal,
+  Alert,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BarChart } from 'react-native-chart-kit';
 import { useHistorico } from '../../src/hooks/useTreinos';
 import { useRecordes } from '../../src/hooks/useRecordes';
+import { useExercicios } from '../../src/hooks/useExercicios';
 import {
   calcularResumoPeriodo,
-  calcularFrequenciaSemanal,
+  getSemanaDias,
   calcularEvolucaoExercicio,
   listarExerciciosNoHistorico,
-  getExercicioNome,
 } from '../../src/utils/stats';
 import { TreinoCompleto } from '../../src/types';
 import { formatarData, formatarDuracao } from '../../src/utils/storage';
-import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+  COR_AVISO,
+} from '../../src/utils/theme';
 import { compartilharRelatorio } from '../../src/utils/export';
 import { carregarPerfil } from '../../src/services/firestoreService';
-import exerciciosData from '../../src/data/exercicios.json';
 
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
-const COR_AVISO = '#ff9800';
 const LARGURA = Dimensions.get('window').width - 40;
-
-const exercicioNomeMap: Record<string, string> = {};
-exerciciosData.forEach((e: any) => { exercicioNomeMap[e.id] = e.nome; });
 
 const chartConfig = {
   backgroundColor: COR_CARD,
@@ -45,32 +51,54 @@ const chartConfig = {
 
 export default function HistoricoScreen() {
   const router = useRouter();
-  const { historico, carregando } = useHistorico();
+  const { historico, carregando, deletar } = useHistorico();
   const { recordes } = useRecordes();
-  const [exercicioSelecionado, setExercicioSelecionado] = useState<string | null>(null);
+  const [exercicioSelecionado, setExercicioSelecionado] = useState<
+    string | null
+  >(null);
   const [periodo, setPeriodo] = useState<30 | 90>(30);
-  const [treinoDetalhe, setTreinoDetalhe] = useState<TreinoCompleto | null>(null);
-  const [customLoaded, setCustomLoaded] = useState(false);
+  const [treinoDetalhe, setTreinoDetalhe] = useState<TreinoCompleto | null>(
+    null,
+  );
+  const { getNome } = useExercicios();
 
-  useEffect(() => {
-    carregarExerciciosPersonalizados().then(custom => {
-      custom.forEach(e => { exercicioNomeMap[e.id] = e.nome; });
-      setCustomLoaded(true);
-    });
-  }, []);
+  const resumo = useMemo(
+    () => calcularResumoPeriodo(historico, periodo),
+    [historico, periodo],
+  );
+  const diasSemanaAtual = useMemo(() => {
+    const semanaDias = getSemanaDias();
+    return semanaDias.map((dia) =>
+      historico.some((h) => h.dataExecucao.split('T')[0] === dia),
+    );
+  }, [historico]);
+  const exerciciosDisponiveis = useMemo(
+    () => listarExerciciosNoHistorico(historico),
+    [historico],
+  );
+  const evolucao = useMemo(
+    () =>
+      exercicioSelecionado
+        ? calcularEvolucaoExercicio(historico, exercicioSelecionado)
+        : null,
+    [historico, exercicioSelecionado],
+  );
 
-  const getNome = (id: string) => exercicioNomeMap[id] || getExercicioNome(id) || id;
-
-  const resumo = calcularResumoPeriodo(historico, periodo);
-  const frequencia = calcularFrequenciaSemanal(historico);
-  const exerciciosDisponiveis = listarExerciciosNoHistorico(historico);
-  const evolucao = exercicioSelecionado
-    ? calcularEvolucaoExercicio(historico, exercicioSelecionado)
-    : null;
-
-  const recordesLista = Object.entries(recordes).map(([exId, rec]) => {
-    return { exercicioId: exId, nome: getNome(exId), icone: 'fitness', corGrupo: COR_PRIMARIA, ...rec };
-  }).sort((a, b) => b.carga - a.carga);
+  const recordesLista = useMemo(
+    () =>
+      Object.entries(recordes)
+        .map(([exId, rec]) => {
+          return {
+            exercicioId: exId,
+            nome: getNome(exId),
+            icone: 'fitness',
+            corGrupo: COR_PRIMARIA,
+            ...rec,
+          };
+        })
+        .sort((a, b) => b.carga - a.carga),
+    [recordes, getNome],
+  );
 
   if (carregando) {
     return (
@@ -81,10 +109,17 @@ export default function HistoricoScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      removeClippedSubviews
+    >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => router.push('/')} style={styles.botaoVoltar}>
+          <TouchableOpacity
+            onPress={() => router.push('/')}
+            style={styles.botaoVoltar}
+          >
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.titulo}>Histórico e Estatísticas</Text>
@@ -107,13 +142,27 @@ export default function HistoricoScreen() {
           style={[styles.periodoBtn, periodo === 30 && styles.periodoBtnAtivo]}
           onPress={() => setPeriodo(30)}
         >
-          <Text style={[styles.periodoTexto, periodo === 30 && styles.periodoTextoAtivo]}>30 dias</Text>
+          <Text
+            style={[
+              styles.periodoTexto,
+              periodo === 30 && styles.periodoTextoAtivo,
+            ]}
+          >
+            30 dias
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.periodoBtn, periodo === 90 && styles.periodoBtnAtivo]}
           onPress={() => setPeriodo(90)}
         >
-          <Text style={[styles.periodoTexto, periodo === 90 && styles.periodoTextoAtivo]}>90 dias</Text>
+          <Text
+            style={[
+              styles.periodoTexto,
+              periodo === 90 && styles.periodoTextoAtivo,
+            ]}
+          >
+            90 dias
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -148,8 +197,17 @@ export default function HistoricoScreen() {
           </View>
           {recordesLista.map((rec) => (
             <View key={rec.exercicioId} style={styles.recItem}>
-              <View style={[styles.recIcone, { backgroundColor: rec.corGrupo + '20' }]}>
-                <Ionicons name={rec.icone as any} size={18} color={rec.corGrupo} />
+              <View
+                style={[
+                  styles.recIcone,
+                  { backgroundColor: rec.corGrupo + '20' },
+                ]}
+              >
+                <Ionicons
+                  name={rec.icone as any}
+                  size={18}
+                  color={rec.corGrupo}
+                />
               </View>
               <View style={styles.recInfo}>
                 <Text style={styles.recNome}>{rec.nome}</Text>
@@ -167,19 +225,23 @@ export default function HistoricoScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitulo}>Frequência Semanal</Text>
         {historico.length > 0 ? (
-          <BarChart
-            data={{
-              labels: frequencia.labels,
-              datasets: [{ data: frequencia.treinos }],
-            }}
-            width={LARGURA - 32}
-            height={180}
-            chartConfig={chartConfig}
-            style={styles.chart}
-            showValuesOnTopOfBars
-            yAxisSuffix=""
-            yAxisLabel=""
-          />
+          <View style={styles.diasRow}>
+            {['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((dia, i) => (
+              <View key={dia} style={styles.diaCol}>
+                <Text style={styles.diaLabel}>{dia}</Text>
+                <View
+                  style={[
+                    styles.diaBox,
+                    diasSemanaAtual[i] && styles.diaBoxTreinou,
+                  ]}
+                >
+                  {diasSemanaAtual[i] && (
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
         ) : (
           <Text style={styles.textoVazio}>Registre treinos para ver dados</Text>
         )}
@@ -189,14 +251,30 @@ export default function HistoricoScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitulo}>Evolução por Exercício</Text>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtros}>
-            {exerciciosDisponiveis.map(id => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filtros}
+          >
+            {exerciciosDisponiveis.map((id) => (
               <TouchableOpacity
                 key={id}
-                style={[styles.filtro, exercicioSelecionado === id && styles.filtroAtivo]}
-                onPress={() => setExercicioSelecionado(exercicioSelecionado === id ? null : id)}
+                style={[
+                  styles.filtro,
+                  exercicioSelecionado === id && styles.filtroAtivo,
+                ]}
+                onPress={() =>
+                  setExercicioSelecionado(
+                    exercicioSelecionado === id ? null : id,
+                  )
+                }
               >
-                <Text style={[styles.filtroTexto, exercicioSelecionado === id && styles.filtroTextoAtivo]}>
+                <Text
+                  style={[
+                    styles.filtroTexto,
+                    exercicioSelecionado === id && styles.filtroTextoAtivo,
+                  ]}
+                >
                   {getNome(id)}
                 </Text>
               </TouchableOpacity>
@@ -210,9 +288,10 @@ export default function HistoricoScreen() {
                   labels: evolucao.labels.slice(-8),
                   datasets: [
                     {
-                      data: evolucao.cargas.slice(-8).length > 0
-                        ? evolucao.cargas.slice(-8)
-                        : [0],
+                      data:
+                        evolucao.cargas.slice(-8).length > 0
+                          ? evolucao.cargas.slice(-8)
+                          : [0],
                     },
                   ],
                 }}
@@ -253,11 +332,39 @@ export default function HistoricoScreen() {
             >
               <View style={styles.historicoInfo}>
                 <Text style={styles.historicoNome}>{item.treino.nome}</Text>
-                <Text style={styles.historicoData}>{formatarData(item.dataExecucao)}</Text>
+                <Text style={styles.historicoData}>
+                  {formatarData(item.dataExecucao)}
+                </Text>
               </View>
               <View style={styles.historicoStats}>
-                <Text style={styles.historicoStat}>{formatarDuracao(item.duracao)}</Text>
-                <Text style={styles.historicoStat}>{item.exercicios.length} ex.</Text>
+                <Text style={styles.historicoStat}>
+                  {formatarDuracao(item.duracao)}
+                </Text>
+                <Text style={styles.historicoStat}>
+                  {item.exercicios.length} ex.
+                </Text>
+              </View>
+              <View style={styles.historicoActions}>
+                <TouchableOpacity
+                  style={styles.btnExcluir}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    Alert.alert(
+                      'Excluir treino',
+                      `Deseja excluir "${item.treino.nome}"?\n\nOs recordes pessoais serão recalculados.`,
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                          text: 'Excluir',
+                          style: 'destructive',
+                          onPress: () => deletar(item.dataExecucao),
+                        },
+                      ],
+                    );
+                  }}
+                >
+                  <Text style={styles.btnExcluirTexto}>Excluir</Text>
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           ))
@@ -271,13 +378,23 @@ export default function HistoricoScreen() {
         onRequestClose={() => setTreinoDetalhe(null)}
       >
         <View style={styles.histTreinoOverlay}>
-          <TouchableOpacity style={styles.histTreinoBackdrop} activeOpacity={1} onPress={() => setTreinoDetalhe(null)} />
+          <TouchableOpacity
+            style={styles.histTreinoBackdrop}
+            activeOpacity={1}
+            onPress={() => setTreinoDetalhe(null)}
+          />
           <View style={styles.histTreinoModal}>
             <View style={styles.histTreinoHeader}>
               <View style={styles.histTreinoHeaderInfo}>
-                <Text style={styles.histTreinoNome}>{treinoDetalhe?.treino.nome}</Text>
+                <Text style={styles.histTreinoNome}>
+                  {treinoDetalhe?.treino.nome}
+                </Text>
                 <Text style={styles.histTreinoMeta}>
-                  {treinoDetalhe ? formatarData(treinoDetalhe.dataExecucao) : ''}  •  {treinoDetalhe ? formatarDuracao(treinoDetalhe.duracao) : ''}
+                  {treinoDetalhe
+                    ? formatarData(treinoDetalhe.dataExecucao)
+                    : ''}{' '}
+                  •{' '}
+                  {treinoDetalhe ? formatarDuracao(treinoDetalhe.duracao) : ''}
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setTreinoDetalhe(null)}>
@@ -298,8 +415,12 @@ export default function HistoricoScreen() {
                     {ex.series.map((serie, si) => (
                       <View key={si} style={styles.histTreinoExRow}>
                         <Text style={styles.histTreinoExValor}>{si + 1}</Text>
-                        <Text style={styles.histTreinoExValor}>{serie.cargas} kg</Text>
-                        <Text style={styles.histTreinoExValor}>{serie.repeticoes}</Text>
+                        <Text style={styles.histTreinoExValor}>
+                          {serie.cargas} kg
+                        </Text>
+                        <Text style={styles.histTreinoExValor}>
+                          {serie.repeticoes}
+                        </Text>
                       </View>
                     ))}
                   </View>
@@ -466,6 +587,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#888',
   },
+  diasRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  diaCol: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  diaLabel: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '600',
+  },
+  diaBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  diaBoxTreinou: {
+    backgroundColor: COR_SUCESSO,
+    borderColor: COR_SUCESSO,
+  },
   chart: {
     borderRadius: 16,
     marginVertical: 8,
@@ -612,6 +759,24 @@ const styles = StyleSheet.create({
   histTreinoExRow: {
     flexDirection: 'row',
     paddingVertical: 4,
+  },
+  historicoActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginLeft: 8,
+  },
+  btnExcluir: {
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+  },
+  btnExcluirTexto: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: '600',
   },
   histTreinoExValor: {
     flex: 1,

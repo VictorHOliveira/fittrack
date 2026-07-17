@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
+import { COR_PRIMARIA, COR_FUNDO, COR_CARD } from '../../src/utils/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,13 +33,14 @@ export default function LoginScreen() {
       await login(email.trim(), senha);
       router.replace('/(tabs)');
     } catch (e: any) {
-      const msg = e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password'
-        ? 'Email ou senha inválidos.'
-        : e.code === 'auth/invalid-email'
-          ? 'Email inválido.'
-          : e.code === 'auth/invalid-credential'
-            ? 'Email ou senha inválidos.'
-            : 'Erro ao fazer login. Tente novamente.';
+      const msg =
+        e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password'
+          ? 'Email ou senha inválidos.'
+          : e.code === 'auth/invalid-email'
+            ? 'Email inválido.'
+            : e.code === 'auth/invalid-credential'
+              ? 'Email ou senha inválidos.'
+              : 'Erro ao fazer login. Tente novamente.';
       Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
@@ -75,8 +83,15 @@ export default function LoginScreen() {
               secureTextEntry={!mostrarSenha}
               editable={!loading}
             />
-            <TouchableOpacity onPress={() => setMostrarSenha(!mostrarSenha)} style={styles.olho}>
-              <Ionicons name={mostrarSenha ? 'eye-off' : 'eye'} size={22} color="#888" />
+            <TouchableOpacity
+              onPress={() => setMostrarSenha(!mostrarSenha)}
+              style={styles.olho}
+            >
+              <Ionicons
+                name={mostrarSenha ? 'eye-off' : 'eye'}
+                size={22}
+                color="#888"
+              />
             </TouchableOpacity>
           </View>
         </View>

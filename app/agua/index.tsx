@@ -1,16 +1,25 @@
 import { useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+} from 'react-native';
 import { useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAgua } from '../../src/hooks/useAgua';
 import CalendarioAgua from '../../src/components/agua/CalendarioAgua';
 import HistoricoAguaModal from '../../src/components/agua/HistoricoAguaModal';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
 const COR_AGUA = '#00BFFF';
-const COR_SUCESSO = '#4CAF50';
 
 export default function AguaScreen() {
   const router = useRouter();
@@ -32,7 +41,10 @@ export default function AguaScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={() => setShowCalendar(true)} style={{ marginRight: 16 }}>
+        <TouchableOpacity
+          onPress={() => setShowCalendar(true)}
+          style={{ marginRight: 16 }}
+        >
           <Ionicons name="calendar" size={24} color="#fff" />
         </TouchableOpacity>
       ),
@@ -51,67 +63,82 @@ export default function AguaScreen() {
 
   return (
     <>
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.progressoSection}>
-        <View style={styles.circleContainer}>
-          <View style={[styles.circle, metaAtingida && styles.circleCompleto]}>
-            <Ionicons
-              name={metaAtingida ? 'checkmark-circle' : 'water'}
-              size={48}
-              color={metaAtingida ? COR_SUCESSO : COR_AGUA}
-            />
-            <Text style={styles.circleNumero}>{totalCoposHoje}</Text>
-            <Text style={styles.circleLabel}>de {config.metaDiaria} copos</Text>
-          </View>
-        </View>
-
-        <View style={styles.barraGrandeContainer}>
-          <View
-            style={[
-              styles.barraGrande,
-              { width: `${progresso * 100}%` },
-              metaAtingida && styles.barraGrandeCompleta,
-            ]}
-          />
-        </View>
-
-        <Text style={styles.totalMl}>{totalMlHoje}ml consumidos hoje</Text>
-      </View>
-
-      <TouchableOpacity
-        style={[styles.botaoTomei, metaAtingida && styles.botaoTomeiCompleto]}
-        onPress={adicionarCopo}
-        activeOpacity={0.7}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
       >
-        <Ionicons name={metaAtingida ? 'happy' : 'water'} size={28} color="#fff" />
-        <Text style={styles.botaoTomeiTexto}>
-          {metaAtingida ? 'Mais um copo!' : 'Tomei! 💧'}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.botaoConfig}
-        onPress={() => router.push('/agua/config')}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="settings-outline" size={20} color={COR_PRIMARIA} />
-        <Text style={styles.botaoConfigTexto}>Configurar Notificações</Text>
-      </TouchableOpacity>
-
-      {registroHoje.copos.length > 0 && (
-        <View style={styles.historicoSection}>
-          <Text style={styles.historicoTitulo}>Registros de hoje</Text>
-          {registroHoje.copos.map((copo, idx) => (
-            <View key={idx} style={styles.historicoItem}>
-              <Ionicons name="water" size={16} color={COR_AGUA} />
-              <Text style={styles.historicoTexto}>
-                {copo.ml}ml • {new Date(copo.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+        <View style={styles.progressoSection}>
+          <View style={styles.circleContainer}>
+            <View
+              style={[styles.circle, metaAtingida && styles.circleCompleto]}
+            >
+              <Ionicons
+                name={metaAtingida ? 'checkmark-circle' : 'water'}
+                size={48}
+                color={metaAtingida ? COR_SUCESSO : COR_AGUA}
+              />
+              <Text style={styles.circleNumero}>{totalCoposHoje}</Text>
+              <Text style={styles.circleLabel}>
+                de {config.metaDiaria} copos
               </Text>
             </View>
-          ))}
+          </View>
+
+          <View style={styles.barraGrandeContainer}>
+            <View
+              style={[
+                styles.barraGrande,
+                { width: `${progresso * 100}%` },
+                metaAtingida && styles.barraGrandeCompleta,
+              ]}
+            />
+          </View>
+
+          <Text style={styles.totalMl}>{totalMlHoje}ml consumidos hoje</Text>
         </View>
-      )}
-    </ScrollView>
+
+        <TouchableOpacity
+          style={[styles.botaoTomei, metaAtingida && styles.botaoTomeiCompleto]}
+          onPress={adicionarCopo}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={metaAtingida ? 'happy' : 'water'}
+            size={28}
+            color="#fff"
+          />
+          <Text style={styles.botaoTomeiTexto}>
+            {metaAtingida ? 'Mais um copo!' : 'Tomei! 💧'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.botaoConfig}
+          onPress={() => router.push('/agua/config')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="settings-outline" size={20} color={COR_PRIMARIA} />
+          <Text style={styles.botaoConfigTexto}>Configurar Notificações</Text>
+        </TouchableOpacity>
+
+        {registroHoje.copos.length > 0 && (
+          <View style={styles.historicoSection}>
+            <Text style={styles.historicoTitulo}>Registros de hoje</Text>
+            {registroHoje.copos.map((copo, idx) => (
+              <View key={idx} style={styles.historicoItem}>
+                <Ionicons name="water" size={16} color={COR_AGUA} />
+                <Text style={styles.historicoTexto}>
+                  {copo.ml}ml •{' '}
+                  {new Date(copo.timestamp).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
       <Modal
         visible={showCalendar}
@@ -120,7 +147,11 @@ export default function AguaScreen() {
         onRequestClose={() => setShowCalendar(false)}
       >
         <View style={styles.calOverlay}>
-          <TouchableOpacity style={styles.calBackdrop} activeOpacity={1} onPress={() => setShowCalendar(false)} />
+          <TouchableOpacity
+            style={styles.calBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowCalendar(false)}
+          />
           <View style={styles.calContainer}>
             <CalendarioAgua
               registros={registros}

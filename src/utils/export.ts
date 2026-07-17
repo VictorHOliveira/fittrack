@@ -11,13 +11,15 @@ import { carregarExerciciosPersonalizados } from '../services/firestoreService';
 
 export async function compartilharRelatorio(
   historico: TreinoCompleto[],
-  perfil: PerfilUsuario | null
+  perfil: PerfilUsuario | null,
 ): Promise<void> {
   const resumo = calcularResumoPeriodo(historico, 30);
 
   const customExercises = await carregarExerciciosPersonalizados();
   const customMap: Record<string, string> = {};
-  customExercises.forEach(e => { customMap[e.id] = e.nome; });
+  customExercises.forEach((e) => {
+    customMap[e.id] = e.nome;
+  });
 
   let relatorio = '📊 Relatório - Treino Mais\n';
   relatorio += `📅 Últimos 30 dias\n\n`;
@@ -49,7 +51,10 @@ export async function compartilharRelatorio(
         if (evolucao.cargas.length >= 2) {
           const primeira = evolucao.cargas[0];
           const ultima = evolucao.cargas[evolucao.cargas.length - 1];
-          const variacao = ((ultima - primeira) / primeira * 100).toFixed(0);
+          const variacao =
+            primeira === 0
+              ? '∞'
+              : (((ultima - primeira) / primeira) * 100).toFixed(0);
           relatorio += `• ${getExercicioNome(exId, customMap)}: ${primeira}kg → ${ultima}kg (+${variacao}%)\n`;
         }
       }
@@ -63,7 +68,7 @@ export async function compartilharRelatorio(
       message: relatorio,
       title: 'Treino Mais - Relatório',
     });
-  } catch (error) {
-    console.warn('Erro ao compartilhar:', error);
+  } catch {
+    // Falha silenciosa ao compartilhar
   }
 }

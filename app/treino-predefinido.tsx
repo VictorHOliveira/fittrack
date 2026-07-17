@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { TreinoPreDefinido, DiaTreino, Exercicio } from '../src/types';
-import { listarTreinosPreDefinidos, importarTreinoPreDefinido, jaImportouTreino } from '../src/utils/storage';
-import { carregarExerciciosPersonalizados } from '../src/services/firestoreService';
-import exerciciosData from '../src/data/exercicios.json';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
-
-const NIVEL_CORES: Record<string, string> = {
-  iniciante: '#4CAF50',
-  intermediario: '#ff9800',
-  avancado: '#ff6b6b',
-};
-
-const NIVEL_LABELS: Record<string, string> = {
-  iniciante: 'Iniciante',
-  intermediario: 'Intermediário',
-  avancado: 'Avançado',
-};
+import { TreinoPreDefinido } from '../src/types';
+import {
+  listarTreinosPreDefinidos,
+  jaImportouTreino,
+} from '../src/utils/storage';
+import { useExercicios } from '../src/hooks/useExercicios';
+import { useTreinos } from '../src/hooks/useTreinos';
+import { importarPreDefinido } from '../src/hooks/useCriarTreino';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  NIVEL_CORES,
+  NIVEL_LABELS,
+} from '../src/utils/theme';
 
 export default function TreinoPreDefinidoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,11 +31,8 @@ export default function TreinoPreDefinidoScreen() {
   const [treino, setTreino] = useState<TreinoPreDefinido | null>(null);
   const [jaImportado, setJaImportado] = useState(false);
   const [importando, setImportando] = useState(false);
-  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
-
-  useEffect(() => {
-    carregarExerciciosPersonalizados().then(setExerciciosCustom);
-  }, []);
+  const { find } = useExercicios();
+  const { adicionarOuEditarTreino } = useTreinos();
 
   useEffect(() => {
     (async () => {
@@ -49,18 +47,17 @@ export default function TreinoPreDefinidoScreen() {
   }, [id]);
 
   const handleImportar = async () => {
-    if (!id || importando) return;
+    if (!id || importando || !treino) return;
     setImportando(true);
-    const resultado = await importarTreinoPreDefinido(id);
+    const converted = importarPreDefinido(treino);
+    await adicionarOuEditarTreino(converted);
     setImportando(false);
-    if (resultado) {
-      setJaImportado(true);
-      Alert.alert('Sucesso', 'Treino importado! Você o encontra na aba Treinos.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } else {
-      Alert.alert('Aviso', 'Este treino já foi importado anteriormente.');
-    }
+    setJaImportado(true);
+    Alert.alert(
+      'Sucesso',
+      'Treino importado! Você o encontra na aba Treinos.',
+      [{ text: 'OK', onPress: () => router.back() }],
+    );
   };
 
   if (!treino) {
@@ -89,7 +86,9 @@ export default function TreinoPreDefinidoScreen() {
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <Ionicons name="calendar" size={18} color={COR_PRIMARIA} />
-            <Text style={styles.infoTexto}>{treino.frequenciaSemanal}x/semana</Text>
+            <Text style={styles.infoTexto}>
+              {treino.frequenciaSemanal}x/semana
+            </Text>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="time" size={18} color={COR_PRIMARIA} />
@@ -109,15 +108,19 @@ export default function TreinoPreDefinidoScreen() {
             </View>
 
             {dia.exercicios.map((ex, exIndex) => {
-              const info = [...exerciciosData, ...exerciciosCustom].find(e => e.id === ex.exercicioId);
+              const info = find(ex.exercicioId);
               return (
                 <View key={exIndex} style={styles.exercicioItem}>
                   <View style={styles.exercicioInfo}>
-                    <Text style={styles.exercicioNome}>{info?.nome || ex.exercicioId}</Text>
+                    <Text style={styles.exercicioNome}>
+                      {info?.nome || ex.exercicioId}
+                    </Text>
                     <Text style={styles.exercicioMusculo}>{info?.musculo}</Text>
                   </View>
                   <View style={styles.exercicioParams}>
-                    <Text style={styles.paramTexto}>{ex.series}x{ex.repeticoes}</Text>
+                    <Text style={styles.paramTexto}>
+                      {ex.series}x{ex.repeticoes}
+                    </Text>
                     <Text style={styles.paramDescanso}>{ex.descanso}s</Text>
                   </View>
                 </View>
@@ -138,7 +141,11 @@ export default function TreinoPreDefinidoScreen() {
           color="#fff"
         />
         <Text style={styles.botaoImportarTexto}>
-          {jaImportado ? 'Já Importado' : importando ? 'Importando...' : 'Importar Treino'}
+          {jaImportado
+            ? 'Já Importado'
+            : importando
+              ? 'Importando...'
+              : 'Importar Treino'}
         </Text>
       </TouchableOpacity>
     </View>

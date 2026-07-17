@@ -1,14 +1,26 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Switch, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAgua } from '../../src/hooks/useAgua';
 import { ConfigAgua } from '../../src/types';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
 export default function ConfigAguaScreen() {
   const router = useRouter();
@@ -16,6 +28,7 @@ export default function ConfigAguaScreen() {
   const [form, setForm] = useState<ConfigAgua>(config);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(config);
   }, [config]);
 
@@ -46,7 +59,10 @@ export default function ConfigAguaScreen() {
       });
       router.back();
     } catch (e: any) {
-      Alert.alert('Erro ao salvar', e?.message || 'Ocorreu um erro ao salvar as configurações de água.');
+      Alert.alert(
+        'Erro ao salvar',
+        e?.message || 'Ocorreu um erro ao salvar as configurações de água.',
+      );
     }
   };
 
@@ -55,7 +71,10 @@ export default function ConfigAguaScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
         <Text style={styles.descricao}>
           Configure seus lembretes e metas de hidratação.
         </Text>
@@ -83,7 +102,9 @@ export default function ConfigAguaScreen() {
           <TextInput
             style={styles.input}
             value={String(form.intervaloMinutos)}
-            onChangeText={(t) => setForm({ ...form, intervaloMinutos: Number(t) || 0 })}
+            onChangeText={(t) =>
+              setForm({ ...form, intervaloMinutos: Number(t) || 0 })
+            }
             keyboardType="number-pad"
             placeholder="60"
             placeholderTextColor="#555"
@@ -104,9 +125,7 @@ export default function ConfigAguaScreen() {
             placeholder="250"
             placeholderTextColor="#555"
           />
-          <Text style={styles.hint}>
-            Quantos ml tem seu copo ou garrafa?
-          </Text>
+          <Text style={styles.hint}>Quantos ml tem seu copo ou garrafa?</Text>
         </View>
 
         <View style={styles.card}>
@@ -114,7 +133,9 @@ export default function ConfigAguaScreen() {
           <TextInput
             style={styles.input}
             value={String(form.metaDiaria)}
-            onChangeText={(t) => setForm({ ...form, metaDiaria: Number(t) || 0 })}
+            onChangeText={(t) =>
+              setForm({ ...form, metaDiaria: Number(t) || 0 })
+            }
             keyboardType="number-pad"
             placeholder="8"
             placeholderTextColor="#555"

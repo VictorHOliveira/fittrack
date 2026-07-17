@@ -2,10 +2,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCardio } from '../../hooks/useCardio';
+import { COR_CARD } from '../../utils/theme';
 
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
 const COR_CARDIO = '#FF6B35';
 
 export default function PainelCardio() {
@@ -17,9 +15,10 @@ export default function PainelCardio() {
   const totalMin = entriesHoje.reduce((acc, e) => acc + e.duracaoMinutos, 0);
   const totalCal = entriesHoje.reduce((acc, e) => acc + e.calorias, 0);
 
-  const label = totalMin > 0
-    ? `${totalMin}min hoje • ${totalCal}kcal`
-    : 'Nenhum cardio registrado hoje';
+  const label =
+    totalMin > 0
+      ? `${totalMin}min hoje • ${totalCal}kcal`
+      : 'Nenhum cardio registrado hoje';
 
   return (
     <TouchableOpacity

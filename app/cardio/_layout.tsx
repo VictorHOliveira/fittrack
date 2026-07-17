@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
-
-const COR_FUNDO = '#1a1a2e';
+import { COR_FUNDO } from '../../src/utils/theme';
 
 export default function CardioLayout() {
   return (
@@ -24,7 +23,6 @@ export default function CardioLayout() {
           presentation: 'modal',
         }}
       />
-
     </Stack>
   );
 }

@@ -1,10 +1,35 @@
 import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Treino, TreinoCompleto } from '../types';
-import { carregarTreinos, salvarTreino, deletarTreino, carregarHistorico, salvarHistorico, carregarTreinosLocal, carregarHistoricoLocal } from '../services/firestoreService';
+import {
+  carregarTreinos,
+  salvarTreino,
+  deletarTreino,
+  carregarHistorico,
+  salvarHistorico,
+  deletarHistorico,
+  recalcularRecordesDoHistorico,
+  carregarTreinosLocal,
+  carregarHistoricoLocal,
+  carregarHistoricoDeletados,
+  salvarHistoricoDeletados,
+} from '../services/firestoreService';
 
 let treinosSynced = false;
-let historicoSynced = false;
+let historicoDeletadosLoaded = false;
+const historicoDeletados = new Set<string>();
+
+async function ensureDeletadosLoaded() {
+  if (!historicoDeletadosLoaded) {
+    const deletados = await carregarHistoricoDeletados();
+    deletados.forEach((d) => historicoDeletados.add(d));
+    historicoDeletadosLoaded = true;
+  }
+}
+
+export function resetSyncFlags() {
+  treinosSynced = false;
+}
 
 export function useTreinos() {
   const [treinos, setTreinos] = useState<Treino[]>([]);
@@ -26,11 +51,13 @@ export function useTreinos() {
 
       const dadosR = await carregarTreinos();
       treinosSynced = true;
-      if (dadosR.length >= dados.length && JSON.stringify(dados) !== JSON.stringify(dadosR)) {
+      if (
+        dadosR.length >= dados.length &&
+        JSON.stringify(dados) !== JSON.stringify(dadosR)
+      ) {
         setTreinos(dadosR);
       }
-    } catch (e) {
-      console.warn('Erro ao carregar treinos:', e);
+    } catch {
       setCarregando(false);
     }
   }, []);
@@ -43,15 +70,15 @@ export function useTreinos() {
       } else {
         carregarLocal();
       }
-    }, [sincronizar, carregarLocal])
+    }, [sincronizar, carregarLocal]),
   );
 
   const adicionarOuEditarTreino = async (treino: Treino) => {
     try {
       await salvarTreino(treino);
       await sincronizar();
-    } catch (e) {
-      console.warn('Erro ao salvar treino:', e);
+    } catch {
+      // Falha silenciosa
     }
   };
 
@@ -59,24 +86,23 @@ export function useTreinos() {
     try {
       await deletarTreino(id);
       await sincronizar();
-    } catch (e) {
-      console.warn('Erro ao deletar treino:', e);
+    } catch {
+      // Falha silenciosa
     }
   };
 
-  return { treinos, carregando, adicionarOuEditarTreino, deletar, recarregar: sincronizar };
+  return {
+    treinos,
+    carregando,
+    adicionarOuEditarTreino,
+    deletar,
+    recarregar: sincronizar,
+  };
 }
 
 export function useHistorico() {
   const [historico, setHistorico] = useState<TreinoCompleto[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const mounted = useRef(false);
-
-  const carregarLocal = useCallback(async () => {
-    const dados = await carregarHistoricoLocal();
-    setHistorico(dados);
-    setCarregando(false);
-  }, []);
 
   const sincronizar = useCallback(async () => {
     try {
@@ -86,35 +112,51 @@ export function useHistorico() {
       setCarregando(false);
 
       const dadosR = await carregarHistorico();
-      historicoSynced = true;
-      if (dadosR.length >= dados.length && JSON.stringify(dados) !== JSON.stringify(dadosR)) {
+      if (
+        dadosR.length >= dados.length &&
+        JSON.stringify(dados) !== JSON.stringify(dadosR)
+      ) {
         setHistorico(dadosR);
       }
-    } catch (e) {
-      console.warn('Erro ao carregar histórico:', e);
+    } catch {
       setCarregando(false);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      if (!mounted.current || !historicoSynced) {
-        mounted.current = true;
-        sincronizar();
-      } else {
-        carregarLocal();
-      }
-    }, [sincronizar, carregarLocal])
+      sincronizar();
+    }, [sincronizar]),
   );
 
   const salvar = async (treino: TreinoCompleto) => {
     try {
       await salvarHistorico(treino);
       await sincronizar();
-    } catch (e) {
-      console.warn('Erro ao salvar histórico:', e);
+    } catch {
+      // Falha silenciosa
     }
   };
 
-  return { historico, carregando, salvar, recarregar: sincronizar };
+  const deletar = async (dataExecucao: string) => {
+    try {
+      await ensureDeletadosLoaded();
+      historicoDeletados.add(dataExecucao);
+      await salvarHistoricoDeletados(Array.from(historicoDeletados));
+      await deletarHistorico(dataExecucao);
+      const dados = await carregarHistoricoLocal();
+      setHistorico(dados);
+      await recalcularRecordesDoHistorico(dados);
+    } catch {
+      // Falha silenciosa
+    }
+  };
+
+  return {
+    historico,
+    carregando,
+    salvar,
+    deletar,
+    recarregar: sincronizar,
+  };
 }

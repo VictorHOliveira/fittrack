@@ -1,9 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { ConfigAgua, RegistroAguaDiario } from '../types';
-import { carregarConfigAgua, salvarConfigAgua, carregarRegistroAgua, adicionarCopoAgua, carregarConfigAguaLocal, carregarRegistroAguaLocal } from '../services/firestoreService';
+import {
+  carregarConfigAgua,
+  salvarConfigAgua,
+  carregarRegistroAgua,
+  adicionarCopoAgua,
+  carregarConfigAguaLocal,
+  carregarRegistroAguaLocal,
+} from '../services/firestoreService';
 import { CONFIG_AGUA_PADRAO } from '../utils/storage';
-import { pedirPermissaoNotificacao, agendarNotificacaoRegular, cancelarTodasNotificacoesAgua, setupCategoriaTomei, cancelarTodasNags, iniciarListenerNag } from '../utils/notificacoesAgua';
+import {
+  pedirPermissaoNotificacao,
+  agendarNotificacaoRegular,
+  cancelarTodasNotificacoesAgua,
+  setupCategoriaTomei,
+  cancelarTodasNags,
+  iniciarListenerNag,
+} from '../utils/notificacoesAgua';
 
 function getHoje(): string {
   return new Date().toISOString().split('T')[0];
@@ -31,8 +45,7 @@ export function useAgua() {
       ]);
       if (JSON.stringify(cfg) !== JSON.stringify(cfgR)) setConfig(cfgR);
       if (JSON.stringify(regs) !== JSON.stringify(regsR)) setRegistros(regsR);
-    } catch (e) {
-      console.warn('Erro ao carregar dados de água:', e);
+    } catch {
       setCarregando(false);
     }
   }, []);
@@ -40,18 +53,22 @@ export function useAgua() {
   useFocusEffect(
     useCallback(() => {
       carregar();
-    }, [carregar])
+    }, [carregar]),
   );
 
-  const registroHoje = registros.find(r => r.data === getHoje()) || { data: getHoje(), copos: [] };
+  const registroHoje = registros.find((r) => r.data === getHoje()) || {
+    data: getHoje(),
+    copos: [],
+  };
   const totalMlHoje = registroHoje.copos.reduce((acc, c) => acc + c.ml, 0);
   const totalCoposHoje = registroHoje.copos.length;
-  const progresso = config.metaDiaria > 0 ? Math.min(totalCoposHoje / config.metaDiaria, 1) : 0;
+  const progresso =
+    config.metaDiaria > 0 ? Math.min(totalCoposHoje / config.metaDiaria, 1) : 0;
 
   const adicionarCopo = useCallback(async () => {
     const atualizado = await adicionarCopoAgua(config.copoMl);
-    setRegistros(prev => {
-      const idx = prev.findIndex(r => r.data === getHoje());
+    setRegistros((prev) => {
+      const idx = prev.findIndex((r) => r.data === getHoje());
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = atualizado;
@@ -75,7 +92,7 @@ export function useAgua() {
         await setupCategoriaTomei();
         await agendarNotificacaoRegular(novaConfig.intervaloMinutos);
       } else {
-        setConfig(prev => ({ ...prev, notificacaoAtivada: false }));
+        setConfig((prev) => ({ ...prev, notificacaoAtivada: false }));
         await salvarConfigAgua({ ...novaConfig, notificacaoAtivada: false });
       }
     } else {

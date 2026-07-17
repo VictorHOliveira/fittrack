@@ -1,20 +1,49 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Dimensions, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  Dimensions,
+  Modal,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart } from 'react-native-chart-kit';
 import { MedidaCorporal } from '../../src/types';
-import { carregarMedidas, salvarMedida, deletarMedida } from '../../src/services/firestoreService';
+import {
+  carregarMedidas,
+  salvarMedida,
+  deletarMedida,
+} from '../../src/services/firestoreService';
 import { gerarId, formatarData } from '../../src/utils/storage';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
 const LARGURA = Dimensions.get('window').width - 40;
 
-type MetricaChave = 'peso' | 'cintura' | 'bracoEsq' | 'bracoDir' | 'coxaEsq' | 'coxaDir' | 'peito';
+type MetricaChave =
+  | 'peso'
+  | 'cintura'
+  | 'bracoEsq'
+  | 'bracoDir'
+  | 'coxaEsq'
+  | 'coxaDir'
+  | 'peito'
+  | 'gorduraCorporal';
 
-const METRICAS: { chave: MetricaChave; label: string; unidade: string; cor: string }[] = [
+const METRICAS: {
+  chave: MetricaChave;
+  label: string;
+  unidade: string;
+  cor: string;
+}[] = [
   { chave: 'peso', label: 'Peso', unidade: 'kg', cor: '#6C63FF' },
   { chave: 'cintura', label: 'Cintura', unidade: 'cm', cor: '#4CAF50' },
   { chave: 'bracoEsq', label: 'Braço Esq', unidade: 'cm', cor: '#ff9800' },
@@ -22,6 +51,12 @@ const METRICAS: { chave: MetricaChave; label: string; unidade: string; cor: stri
   { chave: 'coxaEsq', label: 'Coxa Esq', unidade: 'cm', cor: '#e91e63' },
   { chave: 'coxaDir', label: 'Coxa Dir', unidade: 'cm', cor: '#880e4f' },
   { chave: 'peito', label: 'Peitoral', unidade: 'cm', cor: '#2196f3' },
+  {
+    chave: 'gorduraCorporal',
+    label: 'Gordura Corp.',
+    unidade: '%',
+    cor: '#9C27B0',
+  },
 ];
 
 const chartConfig = {
@@ -33,15 +68,21 @@ const chartConfig = {
   labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.7})`,
   style: { borderRadius: 16 },
   propsForDots: { r: '5', strokeWidth: '2', stroke: COR_PRIMARIA },
-  propsForBackgroundLines: { strokeDasharray: '', stroke: 'rgba(255,255,255,0.08)' },
+  propsForBackgroundLines: {
+    strokeDasharray: '',
+    stroke: 'rgba(255,255,255,0.08)',
+  },
 };
 
 export default function MedidasScreen() {
   const [medidas, setMedidas] = useState<MedidaCorporal[]>([]);
-  const [metricaSelecionada, setMetricaSelecionada] = useState<MetricaChave>('peso');
+  const [metricaSelecionada, setMetricaSelecionada] =
+    useState<MetricaChave>('peso');
   const [editando, setEditando] = useState(false);
 
-  const [medidaDetalhe, setMedidaDetalhe] = useState<MedidaCorporal | null>(null);
+  const [medidaDetalhe, setMedidaDetalhe] = useState<MedidaCorporal | null>(
+    null,
+  );
   const [peso, setPeso] = useState('');
   const [cintura, setCintura] = useState('');
   const [bracoEsq, setBracoEsq] = useState('');
@@ -49,18 +90,29 @@ export default function MedidasScreen() {
   const [coxaEsq, setCoxaEsq] = useState('');
   const [coxaDir, setCoxaDir] = useState('');
   const [peito, setPeito] = useState('');
-
-  useEffect(() => {
-    carregar();
-  }, []);
+  const [gorduraCorporal, setGorduraCorporal] = useState('');
 
   const carregar = async () => {
     const dados = await carregarMedidas();
     setMedidas(dados);
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    carregar();
+  }, []);
+
   const handleSalvar = async () => {
-    if (!peso.trim() && !cintura.trim() && !bracoEsq.trim() && !bracoDir.trim() && !coxaEsq.trim() && !coxaDir.trim() && !peito.trim()) {
+    if (
+      !peso.trim() &&
+      !cintura.trim() &&
+      !bracoEsq.trim() &&
+      !bracoDir.trim() &&
+      !coxaEsq.trim() &&
+      !coxaDir.trim() &&
+      !peito.trim() &&
+      !gorduraCorporal.trim()
+    ) {
       Alert.alert('Erro', 'Preencha pelo menos uma medida');
       return;
     }
@@ -75,6 +127,7 @@ export default function MedidasScreen() {
       coxaEsq: coxaEsq.trim() || undefined,
       coxaDir: coxaDir.trim() || undefined,
       peito: peito.trim(),
+      gorduraCorporal: gorduraCorporal.trim() || undefined,
     };
 
     await salvarMedida(novaMedida);
@@ -85,6 +138,7 @@ export default function MedidasScreen() {
     setCoxaEsq('');
     setCoxaDir('');
     setPeito('');
+    setGorduraCorporal('');
     setEditando(false);
     await carregar();
   };
@@ -103,13 +157,15 @@ export default function MedidasScreen() {
     ]);
   };
 
-  const metricaInfo = METRICAS.find(m => m.chave === metricaSelecionada)!;
-  const dadosGrafico = medidas
-    .filter(m => m[metricaSelecionada])
-    .reverse();
+  const metricaInfo = METRICAS.find((m) => m.chave === metricaSelecionada)!;
+  const dadosGrafico = medidas.filter((m) => m[metricaSelecionada]).reverse();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scroll}
+      removeClippedSubviews
+    >
       <View style={styles.header}>
         <Text style={styles.titulo}>Medidas Corporais</Text>
         <TouchableOpacity
@@ -127,19 +183,30 @@ export default function MedidasScreen() {
           {METRICAS.map((m) => {
             const [value, setValue] = (() => {
               switch (m.chave) {
-                case 'peso': return [peso, setPeso] as const;
-                case 'cintura': return [cintura, setCintura] as const;
-                case 'bracoEsq': return [bracoEsq, setBracoEsq] as const;
-                case 'bracoDir': return [bracoDir, setBracoDir] as const;
-                case 'coxaEsq': return [coxaEsq, setCoxaEsq] as const;
-                case 'coxaDir': return [coxaDir, setCoxaDir] as const;
-                case 'peito': return [peito, setPeito] as const;
+                case 'peso':
+                  return [peso, setPeso] as const;
+                case 'cintura':
+                  return [cintura, setCintura] as const;
+                case 'bracoEsq':
+                  return [bracoEsq, setBracoEsq] as const;
+                case 'bracoDir':
+                  return [bracoDir, setBracoDir] as const;
+                case 'coxaEsq':
+                  return [coxaEsq, setCoxaEsq] as const;
+                case 'coxaDir':
+                  return [coxaDir, setCoxaDir] as const;
+                case 'peito':
+                  return [peito, setPeito] as const;
+                case 'gorduraCorporal':
+                  return [gorduraCorporal, setGorduraCorporal] as const;
               }
             })();
 
             return (
               <View key={m.chave} style={styles.inputRow}>
-                <Text style={styles.inputLabel}>{m.label} ({m.unidade})</Text>
+                <Text style={styles.inputLabel}>
+                  {m.label} ({m.unidade})
+                </Text>
                 <TextInput
                   style={styles.input}
                   value={value}
@@ -160,26 +227,54 @@ export default function MedidasScreen() {
       )}
 
       <View style={styles.seletorLinha}>
-        {METRICAS.filter(m => m.chave === 'peso' || m.chave === 'cintura' || m.chave === 'peito').map((m) => (
+        {METRICAS.filter(
+          (m) =>
+            m.chave === 'peso' ||
+            m.chave === 'cintura' ||
+            m.chave === 'peito' ||
+            m.chave === 'gorduraCorporal',
+        ).map((m) => (
           <TouchableOpacity
             key={m.chave}
-            style={[styles.metricaBtn, metricaSelecionada === m.chave && { backgroundColor: m.cor }]}
+            style={[
+              styles.metricaBtn,
+              metricaSelecionada === m.chave && { backgroundColor: m.cor },
+            ]}
             onPress={() => setMetricaSelecionada(m.chave)}
           >
-            <Text style={[styles.metricaTexto, metricaSelecionada === m.chave && { color: '#fff' }]}>
+            <Text
+              style={[
+                styles.metricaTexto,
+                metricaSelecionada === m.chave && { color: '#fff' },
+              ]}
+            >
               {m.label}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
       <View style={styles.seletorLinha}>
-        {METRICAS.filter(m => m.chave === 'bracoEsq' || m.chave === 'bracoDir' || m.chave === 'coxaEsq' || m.chave === 'coxaDir').map((m) => (
+        {METRICAS.filter(
+          (m) =>
+            m.chave === 'bracoEsq' ||
+            m.chave === 'bracoDir' ||
+            m.chave === 'coxaEsq' ||
+            m.chave === 'coxaDir',
+        ).map((m) => (
           <TouchableOpacity
             key={m.chave}
-            style={[styles.metricaBtn, metricaSelecionada === m.chave && { backgroundColor: m.cor }]}
+            style={[
+              styles.metricaBtn,
+              metricaSelecionada === m.chave && { backgroundColor: m.cor },
+            ]}
             onPress={() => setMetricaSelecionada(m.chave)}
           >
-            <Text style={[styles.metricaTexto, metricaSelecionada === m.chave && { color: '#fff' }]}>
+            <Text
+              style={[
+                styles.metricaTexto,
+                metricaSelecionada === m.chave && { color: '#fff' },
+              ]}
+            >
               {m.label}
             </Text>
           </TouchableOpacity>
@@ -188,13 +283,19 @@ export default function MedidasScreen() {
 
       {dadosGrafico.length >= 2 ? (
         <View style={styles.card}>
-          <Text style={styles.cardTitulo}>{metricaInfo.label} ao Longo do Tempo</Text>
+          <Text style={styles.cardTitulo}>
+            {metricaInfo.label} ao Longo do Tempo
+          </Text>
           <LineChart
             data={{
-              labels: dadosGrafico.map(d => formatarData(d.data)),
-              datasets: [{
-                data: dadosGrafico.map(d => parseFloat(d[metricaSelecionada] as string) || 0),
-              }],
+              labels: dadosGrafico.map((d) => formatarData(d.data)),
+              datasets: [
+                {
+                  data: dadosGrafico.map(
+                    (d) => parseFloat(d[metricaSelecionada] as string) || 0,
+                  ),
+                },
+              ],
             }}
             width={LARGURA - 32}
             height={200}
@@ -220,12 +321,16 @@ export default function MedidasScreen() {
             <Text style={styles.ultimoValor}>
               {dadosGrafico[0][metricaSelecionada]} {metricaInfo.unidade}
             </Text>
-            <Text style={styles.ultimoData}>{formatarData(dadosGrafico[0].data)}</Text>
+            <Text style={styles.ultimoData}>
+              {formatarData(dadosGrafico[0].data)}
+            </Text>
           </View>
         </View>
       ) : (
         <View style={styles.card}>
-          <Text style={styles.textoVazio}>Registre ao menos 2 medições para ver o gráfico</Text>
+          <Text style={styles.textoVazio}>
+            Registre ao menos 2 medições para ver o gráfico
+          </Text>
         </View>
       )}
 
@@ -243,7 +348,10 @@ export default function MedidasScreen() {
               <View style={styles.histItemRight}>
                 <Ionicons name="chevron-forward" size={18} color="#444" />
                 <TouchableOpacity
-                  onPress={(e) => { e.stopPropagation(); handleDeletar(m.id) }}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleDeletar(m.id);
+                  }}
                   style={styles.botaoDeletar}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
@@ -261,7 +369,11 @@ export default function MedidasScreen() {
         onRequestClose={() => setMedidaDetalhe(null)}
       >
         <View style={styles.histModalOverlay}>
-          <TouchableOpacity style={styles.histModalBackdrop} activeOpacity={1} onPress={() => setMedidaDetalhe(null)} />
+          <TouchableOpacity
+            style={styles.histModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setMedidaDetalhe(null)}
+          />
           <View style={styles.histModal}>
             <View style={styles.histModalHeader}>
               <Text style={styles.histModalTitulo}>
@@ -280,11 +392,19 @@ export default function MedidasScreen() {
                   m.cintura && { label: 'Cintura', valor: `${m.cintura} cm` },
                   m.bracoEsq && { label: 'Braço E', valor: `${m.bracoEsq} cm` },
                   m.bracoDir && { label: 'Braço D', valor: `${m.bracoDir} cm` },
-                  !m.bracoEsq && !m.bracoDir && m.braco && { label: 'Braço', valor: `${m.braco} cm` },
+                  !m.bracoEsq &&
+                    !m.bracoDir &&
+                    m.braco && { label: 'Braço', valor: `${m.braco} cm` },
                   m.coxaEsq && { label: 'Coxa E', valor: `${m.coxaEsq} cm` },
                   m.coxaDir && { label: 'Coxa D', valor: `${m.coxaDir} cm` },
-                  !m.coxaEsq && !m.coxaDir && m.coxa && { label: 'Coxa', valor: `${m.coxa} cm` },
+                  !m.coxaEsq &&
+                    !m.coxaDir &&
+                    m.coxa && { label: 'Coxa', valor: `${m.coxa} cm` },
                   m.peito && { label: 'Peitoral', valor: `${m.peito} cm` },
+                  m.gorduraCorporal && {
+                    label: 'Gordura Corp.',
+                    valor: `${m.gorduraCorporal} %`,
+                  },
                 ].filter(Boolean) as { label: string; valor: string }[];
 
                 return linhas.map((linha, i) => (

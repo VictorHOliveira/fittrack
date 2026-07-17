@@ -1,15 +1,29 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Exercicio } from '../../src/types';
 import { gerarId } from '../../src/utils/storage';
-import { carregarExerciciosPersonalizados, salvarExerciciosPersonalizados } from '../../src/services/firestoreService';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
+import {
+  carregarExerciciosPersonalizados,
+  salvarExerciciosPersonalizados,
+} from '../../src/services/firestoreService';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
 const MUSCULOS = [
   { nome: 'Peito', cor: '#e91e63' },
@@ -36,7 +50,7 @@ export default function CriarExercicioScreen() {
   const [equipamento, setEquipamento] = useState('');
   const [descricao, setDescricao] = useState('');
 
-  const musculoSelecionado = MUSCULOS.find(m => m.nome === musculo);
+  const musculoSelecionado = MUSCULOS.find((m) => m.nome === musculo);
 
   const handleSalvar = async () => {
     if (!nome.trim()) {
@@ -60,7 +74,7 @@ export default function CriarExercicioScreen() {
     };
 
     const lista = await carregarExerciciosPersonalizados();
-    const index = lista.findIndex(e => e.id === novoExercicio.id);
+    const index = lista.findIndex((e) => e.id === novoExercicio.id);
     if (index >= 0) {
       lista[index] = novoExercicio;
     } else {
@@ -75,9 +89,15 @@ export default function CriarExercicioScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scroll}
+      >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.botaoVoltar}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.botaoVoltar}
+          >
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.titulo}>Criar Exercício</Text>
@@ -94,16 +114,24 @@ export default function CriarExercicioScreen() {
 
         <Text style={styles.label}>Grupo muscular *</Text>
         <View style={styles.musculosContainer}>
-          {MUSCULOS.map(m => (
+          {MUSCULOS.map((m) => (
             <TouchableOpacity
               key={m.nome}
               style={[
                 styles.musculoBotao,
-                musculo === m.nome && { backgroundColor: m.cor, borderColor: m.cor },
+                musculo === m.nome && {
+                  backgroundColor: m.cor,
+                  borderColor: m.cor,
+                },
               ]}
               onPress={() => setMusculo(musculo === m.nome ? '' : m.nome)}
             >
-              <Text style={[styles.musculoTexto, musculo === m.nome && styles.musculoTextoAtivo]}>
+              <Text
+                style={[
+                  styles.musculoTexto,
+                  musculo === m.nome && styles.musculoTextoAtivo,
+                ]}
+              >
                 {m.nome}
               </Text>
             </TouchableOpacity>

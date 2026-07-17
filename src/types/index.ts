@@ -71,12 +71,11 @@ export interface TreinoPreDefinido {
 export interface PerfilUsuario {
   nome: string;
   idade: string;
-  peso: string;
   altura: string;
   nivel: 'iniciante' | 'intermediario' | 'avancado';
   objetivo: string[];
   diasPorSemana: string;
-  gorduraCorporal: string;
+  fotoUri?: string;
 }
 
 export interface RecordeExercicio {
@@ -99,6 +98,7 @@ export interface MedidaCorporal {
   coxaEsq?: string;
   coxaDir?: string;
   peito: string;
+  gorduraCorporal?: string;
 }
 
 export interface ConfigAgua {
@@ -118,7 +118,15 @@ export interface RegistroAguaDiario {
   copos: CopoAgua[];
 }
 
-export type TipoCardio = 'bicicleta' | 'caminhada' | 'corrida' | 'natacao' | 'pular_corda' | 'eliptico' | 'bike_ergometrica' | 'outro';
+export type TipoCardio =
+  | 'bicicleta'
+  | 'caminhada'
+  | 'corrida'
+  | 'natacao'
+  | 'pular_corda'
+  | 'eliptico'
+  | 'bike_ergometrica'
+  | 'outro';
 
 export interface CardioEntry {
   id: string;
@@ -130,6 +138,24 @@ export interface CardioEntry {
   distanciaKm?: number;
   observacao?: string;
   timestamp: string;
+}
+
+export interface ExercicioExecucaoSerie {
+  cargas: number;
+  repeticoes: number;
+  concluida: boolean;
+}
+
+export interface ExercicioExecucao {
+  exercicioId: string;
+  nome: string;
+  musculo: string;
+  icone: string;
+  corGrupo: string;
+  descanso: number;
+  descansoRestante: number;
+  anterior: { cargas: number; repeticoes: number }[];
+  series: ExercicioExecucaoSerie[];
 }
 
 export type RootStackParamList = {

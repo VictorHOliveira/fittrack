@@ -11,7 +11,13 @@ interface Props {
   borderRadius?: number;
 }
 
-export default function ExercicioGif({ exercicioId, icone, corGrupo, size = 48, borderRadius = 14 }: Props) {
+export default function ExercicioGif({
+  exercicioId,
+  icone,
+  corGrupo,
+  size = 48,
+  borderRadius = 14,
+}: Props) {
   const [erro, setErro] = useState(false);
   const gifSource = exercicioId ? EXERCISE_GIFS[exercicioId] : null;
 
@@ -27,7 +33,17 @@ export default function ExercicioGif({ exercicioId, icone, corGrupo, size = 48, 
   }
 
   return (
-    <View style={[styles.fallback, { width: size, height: size, borderRadius, backgroundColor: corGrupo + '20' }]}>
+    <View
+      style={[
+        styles.fallback,
+        {
+          width: size,
+          height: size,
+          borderRadius,
+          backgroundColor: corGrupo + '20',
+        },
+      ]}
+    >
       <Ionicons name={icone as any} size={size * 0.5} color={corGrupo} />
     </View>
   );

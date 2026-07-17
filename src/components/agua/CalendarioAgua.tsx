@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RegistroAguaDiario } from '../../types';
+import { COR_CARD, COR_PRIMARIA } from '../../utils/theme';
 
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
 const COR_AGUA = '#00BFFF';
-const COR_PRIMARIA = '#6C63FF';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -25,8 +23,18 @@ function getPrimeiroDiaSemana(ano: number, mes: number): number {
 
 function formatarMes(ano: number, mes: number): string {
   const nomes = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
   return `${nomes[mes]} ${ano}`;
 }
@@ -36,7 +44,7 @@ export default function CalendarioAgua({ registros, onDayPress }: Props) {
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
 
-  const datasComRegistro = new Set(registros.map(r => r.data));
+  const datasComRegistro = new Set(registros.map((r) => r.data));
   const hojeStr = hoje.toISOString().split('T')[0];
 
   const navegar = (diff: number) => {
@@ -103,8 +111,12 @@ export default function CalendarioAgua({ registros, onDayPress }: Props) {
                 onPress={() => onDayPress(diaStr)}
                 activeOpacity={0.6}
               >
-                <View style={[styles.diaCircle, ehHoje && styles.diaCircleHoje]}>
-                  <Text style={[styles.diaNumero, ehHoje && styles.diaNumeroHoje]}>
+                <View
+                  style={[styles.diaCircle, ehHoje && styles.diaCircleHoje]}
+                >
+                  <Text
+                    style={[styles.diaNumero, ehHoje && styles.diaNumeroHoje]}
+                  >
                     {dia}
                   </Text>
                 </View>

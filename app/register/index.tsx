@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
+import { COR_PRIMARIA, COR_FUNDO, COR_CARD } from '../../src/utils/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -35,11 +42,12 @@ export default function RegisterScreen() {
       await register(email.trim(), senha);
       router.replace('/(tabs)');
     } catch (e: any) {
-      const msg = e.code === 'auth/email-already-in-use'
-        ? 'Este email já está cadastrado.'
-        : e.code === 'auth/invalid-email'
-          ? 'Email inválido.'
-          : 'Erro ao cadastrar. Tente novamente.';
+      const msg =
+        e.code === 'auth/email-already-in-use'
+          ? 'Este email já está cadastrado.'
+          : e.code === 'auth/invalid-email'
+            ? 'Email inválido.'
+            : 'Erro ao cadastrar. Tente novamente.';
       Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
@@ -82,8 +90,15 @@ export default function RegisterScreen() {
               secureTextEntry={!mostrarSenha}
               editable={!loading}
             />
-            <TouchableOpacity onPress={() => setMostrarSenha(!mostrarSenha)} style={styles.olho}>
-              <Ionicons name={mostrarSenha ? 'eye-off' : 'eye'} size={22} color="#888" />
+            <TouchableOpacity
+              onPress={() => setMostrarSenha(!mostrarSenha)}
+              style={styles.olho}
+            >
+              <Ionicons
+                name={mostrarSenha ? 'eye-off' : 'eye'}
+                size={22}
+                color="#888"
+              />
             </TouchableOpacity>
           </View>
         </View>

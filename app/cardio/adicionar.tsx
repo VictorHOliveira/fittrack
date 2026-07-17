@@ -1,15 +1,22 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCardio, TIPOS_CARDIO } from '../../src/hooks/useCardio';
 import { TipoCardio } from '../../src/types';
+import { COR_FUNDO, COR_CARD, COR_SUCESSO } from '../../src/utils/theme';
 
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
 const COR_CARDIO = '#FF6B35';
-const COR_SUCESSO = '#4CAF50';
 
 export default function AdicionarCardioScreen() {
   const router = useRouter();
@@ -46,7 +53,10 @@ export default function AdicionarCardioScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
         <Text style={styles.descricao}>
           Preencha os dados do seu treino cardio.
         </Text>
@@ -56,7 +66,10 @@ export default function AdicionarCardioScreen() {
           {TIPOS_CARDIO.map((t) => (
             <TouchableOpacity
               key={t.valor}
-              style={[styles.tipoBotao, tipo === t.valor && styles.tipoBotaoAtivo]}
+              style={[
+                styles.tipoBotao,
+                tipo === t.valor && styles.tipoBotaoAtivo,
+              ]}
               onPress={() => setTipo(t.valor)}
             >
               <Ionicons
@@ -64,7 +77,12 @@ export default function AdicionarCardioScreen() {
                 size={18}
                 color={tipo === t.valor ? '#fff' : '#888'}
               />
-              <Text style={[styles.tipoTexto, tipo === t.valor && styles.tipoTextoAtivo]}>
+              <Text
+                style={[
+                  styles.tipoTexto,
+                  tipo === t.valor && styles.tipoTextoAtivo,
+                ]}
+              >
                 {t.label}
               </Text>
             </TouchableOpacity>

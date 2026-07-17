@@ -3,8 +3,7 @@ import { View, ScrollView, StyleSheet } from 'react-native';
 import { useHistorico } from '../../src/hooks/useTreinos';
 import CalendarioConcluidos from '../../src/components/treinos/CalendarioConcluidos';
 import DetalheTreinoModal from '../../src/components/treinos/DetalheTreinoModal';
-
-const COR_FUNDO = '#1a1a2e';
+import { COR_FUNDO } from '../../src/utils/theme';
 
 export default function ConcluidosScreen() {
   const { historico } = useHistorico();

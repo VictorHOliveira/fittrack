@@ -1,9 +1,16 @@
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RegistroAguaDiario } from '../../types';
+import { COR_FUNDO, COR_CARD } from '../../utils/theme';
+import { formatarDataCompleta } from '../../utils/format';
 
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
 const COR_AGUA = '#00BFFF';
 
 interface Props {
@@ -13,18 +20,13 @@ interface Props {
   onClose: () => void;
 }
 
-function formatarDataBR(dataISO: string): string {
-  const [ano, mes, dia] = dataISO.split('-').map(Number);
-  const data = new Date(ano, mes - 1, dia);
-  return data.toLocaleDateString('pt-BR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-export default function HistoricoAguaModal({ visible, data, registros, onClose }: Props) {
-  const registro = registros.find(r => r.data === data);
+export default function HistoricoAguaModal({
+  visible,
+  data,
+  registros,
+  onClose,
+}: Props) {
+  const registro = registros.find((r) => r.data === data);
   const copos = registro?.copos || [];
   const totalMl = copos.reduce((acc, c) => acc + c.ml, 0);
 
@@ -36,27 +38,41 @@ export default function HistoricoAguaModal({ visible, data, registros, onClose }
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View style={styles.modal}>
           <TouchableOpacity style={styles.btnFechar} onPress={onClose}>
             <Ionicons name="close" size={24} color="#fff" />
           </TouchableOpacity>
 
-          <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.conteudo}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.headerIcon}>
               <Ionicons name="water" size={32} color={COR_AGUA} />
             </View>
 
-            <Text style={styles.dataTexto}>{formatarDataBR(data)}</Text>
+            <Text style={styles.dataTexto}>{formatarDataCompleta(data)}</Text>
 
             {copos.length === 0 ? (
-              <Text style={styles.semRegistro}>Nenhum registro de água neste dia.</Text>
+              <Text style={styles.semRegistro}>
+                Nenhum registro de água neste dia.
+              </Text>
             ) : (
               <>
                 <View style={styles.totalCard}>
-                  <Ionicons name="checkmark-circle" size={20} color={COR_AGUA} />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={COR_AGUA}
+                  />
                   <Text style={styles.totalTexto}>
-                    Total: {copos.length} copo{copos.length !== 1 ? 's' : ''} • {totalMl}ml
+                    Total: {copos.length} copo{copos.length !== 1 ? 's' : ''} •{' '}
+                    {totalMl}ml
                   </Text>
                 </View>
 

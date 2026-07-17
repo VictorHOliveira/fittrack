@@ -1,21 +1,40 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TextInput, Vibration, BackHandler } from 'react-native';
-import { useLocalSearchParams, useRouter, useFocusEffect, useNavigation } from 'expo-router';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  TextInput,
+  Vibration,
+  BackHandler,
+} from 'react-native';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useTreinos, useHistorico } from '../../../src/hooks/useTreinos';
-import { Exercicio } from '../../../src/types';
-import { formatarDuracao, carregarHistorico, salvarTreinoEmAndamento, carregarTreinoEmAndamento, limparTreinoEmAndamento } from '../../../src/utils/storage';
-import { carregarExerciciosPersonalizados, verificarNovoRecorde } from '../../../src/services/firestoreService';
-import exerciciosData from '../../../src/data/exercicios.json';
+import { useExercicios } from '../../../src/hooks/useExercicios';
+import { ExercicioExecucao } from '../../../src/types';
+import {
+  formatarDuracao,
+  carregarHistorico,
+  salvarTreinoEmAndamento,
+  carregarTreinoEmAndamento,
+  limparTreinoEmAndamento,
+} from '../../../src/utils/storage';
+import { COR_FUNDO, COR_PRIMARIA } from '../../../src/utils/theme';
+import {
+  verificarNovoRecordeBatch,
+  carregarRecordes,
+  salvarRecordes,
+} from '../../../src/services/firestoreService';
 import TimerTreino from '../../../src/components/treino/TimerTreino';
 import ExercicioExecucaoCard from '../../../src/components/treino/ExercicioExecucaoCard';
 import DetalhesExercicioModal from '../../../src/components/DetalhesExercicioModal';
 
 const audioSource = require('../../../assets/sounds/descanso.wav');
-
-const COR_FUNDO = '#1a1a2e';
-const COR_PRIMARIA = '#6C63FF';
 
 export default function ExecutarTreinoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,28 +42,50 @@ export default function ExecutarTreinoScreen() {
   const { treinos } = useTreinos();
   const { salvar: salvarHistorico } = useHistorico();
 
-  const [treino, setTreino] = useState(treinos.find(t => t.id === id) || null);
-  const [exerciciosExecucao, setExerciciosExecucao] = useState<any[]>([]);
+  const [treino, setTreino] = useState(
+    treinos.find((t) => t.id === id) || null,
+  );
+  const [exerciciosExecucao, setExerciciosExecucao] = useState<
+    ExercicioExecucao[]
+  >([]);
   const [tempo, setTempo] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const descansoRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [exEditandoDescanso, setExEditandoDescanso] = useState<number | null>(null);
+  const [exEditandoDescanso, setExEditandoDescanso] = useState<number | null>(
+    null,
+  );
   const [valorDescanso, setValorDescanso] = useState('');
-  const [exercicioDetalheIndex, setExercicioDetalheIndex] = useState<number | null>(null);
-  const [exerciciosCustom, setExerciciosCustom] = useState<Exercicio[]>([]);
-  const [customLoaded, setCustomLoaded] = useState(false);
-  const [historicoAnterior, setHistoricoAnterior] = useState<Record<string, { cargas: number; repeticoes: number }[]>>({});
+  const [exercicioDetalheIndex, setExercicioDetalheIndex] = useState<
+    number | null
+  >(null);
+  const { customLoaded, find } = useExercicios();
+  const [historicoAnterior, setHistoricoAnterior] = useState<
+    Record<string, { cargas: number; repeticoes: number }[]>
+  >({});
+  // eslint-disable-next-line react-hooks/purity -- Date.now() is stable for this component's lifetime
   const tempoInicioRef = useRef<number>(Date.now());
   const podeSalvarRef = useRef(true);
+  const finalizandoRef = useRef(false);
+  const autoSaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [finalizando, setFinalizando] = useState(false);
 
   const player = useAudioPlayer(audioSource);
 
   useEffect(() => {
-    setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'mixWithOthers' });
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: 'mixWithOthers',
+    });
+    return () => {
+      setAudioModeAsync({
+        playsInSilentMode: false,
+        interruptionMode: 'mixWithOthers',
+      });
+    };
   }, []);
 
   useEffect(() => {
-    carregarTreinoEmAndamento().then(salvo => {
+    carregarTreinoEmAndamento().then((salvo) => {
       if (salvo && salvo.treinoId === id) {
         tempoInicioRef.current = salvo.tempoInicio;
         setExerciciosExecucao(salvo.exerciciosExecucao);
@@ -53,20 +94,16 @@ export default function ExecutarTreinoScreen() {
     });
   }, [id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      carregarExerciciosPersonalizados().then(custom => {
-        setExerciciosCustom(custom);
-        setCustomLoaded(true);
-      });
-    }, [])
-  );
-
   useEffect(() => {
-    carregarHistorico().then(historico => {
-      const anteriorMap: Record<string, { cargas: number; repeticoes: number }[]> = {};
+    carregarHistorico().then((historico) => {
+      const anteriorMap: Record<
+        string,
+        { cargas: number; repeticoes: number }[]
+      > = {};
       const ordenado = [...historico].sort(
-        (a, b) => new Date(b.dataExecucao).getTime() - new Date(a.dataExecucao).getTime()
+        (a, b) =>
+          new Date(b.dataExecucao).getTime() -
+          new Date(a.dataExecucao).getTime(),
       );
       for (const h of ordenado) {
         for (const ex of h.exercicios) {
@@ -80,13 +117,14 @@ export default function ExecutarTreinoScreen() {
   }, []);
 
   useEffect(() => {
-    const t = treinos.find(t => t.id === id);
+    const t = treinos.find((t) => t.id === id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (t) setTreino(t);
   }, [treinos, id]);
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      setTempo(prev => prev + 1);
+      setTempo((prev) => prev + 1);
     }, 1000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -95,10 +133,10 @@ export default function ExecutarTreinoScreen() {
 
   useEffect(() => {
     descansoRef.current = setInterval(() => {
-      setExerciciosExecucao(prev => {
+      setExerciciosExecucao((prev) => {
         let mudou = false;
         let chegouZero = false;
-        const novos = prev.map(ex => {
+        const novos = prev.map((ex) => {
           if (ex.descansoRestante > 0) {
             mudou = true;
             if (ex.descansoRestante === 1) chegouZero = true;
@@ -121,8 +159,8 @@ export default function ExecutarTreinoScreen() {
 
   useEffect(() => {
     if (treino && customLoaded && exerciciosExecucao.length === 0) {
-      const exec = treino.exercicios.map(ex => {
-        const exercicio = [...exerciciosData, ...exerciciosCustom].find(e => e.id === ex.exercicioId);
+      const exec = treino.exercicios.map((ex) => {
+        const exercicio = find(ex.exercicioId);
         return {
           ...ex,
           nome: exercicio?.nome || 'Exercício',
@@ -131,7 +169,7 @@ export default function ExecutarTreinoScreen() {
           corGrupo: exercicio?.corGrupo || COR_PRIMARIA,
           descansoRestante: 0,
           anterior: historicoAnterior[ex.exercicioId] || [],
-          series: ex.series.map(s => ({
+          series: ex.series.map((s) => ({
             ...s,
             cargas: 0,
             repeticoes: 12,
@@ -139,21 +177,30 @@ export default function ExecutarTreinoScreen() {
           })),
         };
       });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setExerciciosExecucao(exec);
     }
   }, [treino, customLoaded]);
 
   useEffect(() => {
-    if (Object.keys(historicoAnterior).length === 0 || exerciciosExecucao.length === 0) return;
-    setExerciciosExecucao(prev => prev.map(ex => ({
-      ...ex,
-      anterior: historicoAnterior[ex.exercicioId] || ex.anterior || [],
-    })));
+    if (
+      Object.keys(historicoAnterior).length === 0 ||
+      exerciciosExecucao.length === 0
+    )
+      return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExerciciosExecucao((prev) =>
+      prev.map((ex) => ({
+        ...ex,
+        anterior: historicoAnterior[ex.exercicioId] || ex.anterior || [],
+      })),
+    );
   }, [historicoAnterior]);
 
   useEffect(() => {
     if (exerciciosExecucao.length === 0) return;
     const interval = setInterval(() => {
+      if (finalizandoRef.current) return;
       salvarTreinoEmAndamento({
         treinoId: id!,
         exerciciosExecucao,
@@ -161,6 +208,7 @@ export default function ExecutarTreinoScreen() {
         ultimaPersistencia: Date.now(),
       });
     }, 30000);
+    autoSaveRef.current = interval;
     return () => clearInterval(interval);
   }, [exerciciosExecucao, id]);
 
@@ -203,24 +251,79 @@ export default function ExecutarTreinoScreen() {
   }, [persistirEBair]);
 
   const finalizarTreino = async () => {
-    if (!treino) return;
+    if (!treino || finalizandoRef.current) return;
 
+    const temAlgumaSerieFeita = exerciciosExecucao.some((ex) =>
+      ex.series.some((s) => s.concluida && s.cargas > 0),
+    );
+    if (!temAlgumaSerieFeita) {
+      Alert.alert(
+        'Treino sem dados',
+        'Você não preencheu nenhuma série. Este treino será descartado.',
+        [
+          { text: 'Voltar ao treino', style: 'cancel' },
+          {
+            text: 'Descartar',
+            style: 'destructive',
+            onPress: async () => {
+              if (autoSaveRef.current) {
+                clearInterval(autoSaveRef.current);
+                autoSaveRef.current = null;
+              }
+              await limparTreinoEmAndamento();
+              router.replace('/(tabs)');
+            },
+          },
+        ],
+      );
+      return;
+    }
+
+    finalizandoRef.current = true;
+    setFinalizando(true);
     podeSalvarRef.current = false;
-    await limparTreinoEmAndamento();
+    if (autoSaveRef.current) {
+      clearInterval(autoSaveRef.current);
+      autoSaveRef.current = null;
+    }
 
     const novosRecordes: string[] = [];
+    const recordesBatidosDetalhe: Record<string, { cargaAntiga: number; cargaNova: number; repeticoes: number }> = {};
+    try {
+      const recordes = await carregarRecordes();
+      for (const ex of exerciciosExecucao) {
+        const seriesCompletas = ex.series.filter(
+          (s) => s.concluida && s.cargas > 0,
+        );
+        if (seriesCompletas.length === 0) continue;
 
-    for (const ex of exerciciosExecucao) {
-      const seriesCompletas = ex.series.filter((s: any) => s.concluida && s.cargas > 0);
-      if (seriesCompletas.length === 0) continue;
-
-      const cargaMax = Math.max(...seriesCompletas.map((s: any) => s.cargas));
-      const serieMax = seriesCompletas.find((s: any) => s.cargas === cargaMax);
-      const isNovoPR = await verificarNovoRecorde(ex.exercicioId, cargaMax, serieMax?.repeticoes || 0);
-      if (isNovoPR) {
-        novosRecordes.push(ex.nome);
+        const cargaMax = seriesCompletas.reduce(
+          (max, s) => Math.max(max, s.cargas),
+          0,
+        );
+        const serieMax = seriesCompletas.find((s) => s.cargas === cargaMax);
+        const anterior = recordes[ex.exercicioId];
+        const isNovoPR = verificarNovoRecordeBatch(
+          recordes,
+          ex.exercicioId,
+          cargaMax,
+          serieMax?.repeticoes || 0,
+        );
+        if (isNovoPR) {
+          novosRecordes.push(ex.nome);
+          recordesBatidosDetalhe[ex.exercicioId] = {
+            cargaAntiga: anterior?.carga || 0,
+            cargaNova: cargaMax,
+            repeticoes: serieMax?.repeticoes || 0,
+          };
+        }
       }
+      await salvarRecordes(recordes);
+    } catch {
+      // Falha silenciosa ao verificar recordes
     }
+
+    const dataExecucao = new Date().toISOString();
 
     Alert.alert(
       'Finalizar Treino',
@@ -228,17 +331,26 @@ export default function ExecutarTreinoScreen() {
         ? `🏆 Novo recorde em: ${novosRecordes.join(', ')}!\n\nDeseja salvar no histórico?`
         : 'Deseja salvar este treino no histórico?',
       [
-        { text: 'Cancelar', style: 'cancel', onPress: () => { podeSalvarRef.current = true; } },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => {
+            podeSalvarRef.current = true;
+            finalizandoRef.current = false;
+            setFinalizando(false);
+          },
+        },
         {
           text: 'Salvar',
           onPress: async () => {
+            await limparTreinoEmAndamento();
             await salvarHistorico({
               treino,
-              dataExecucao: new Date().toISOString(),
+              dataExecucao,
               duracao: tempo,
-              exercicios: exerciciosExecucao.map(ex => ({
+              exercicios: exerciciosExecucao.map((ex) => ({
                 exercicioId: ex.exercicioId,
-                series: ex.series.map((s: any) => ({
+                series: ex.series.map((s) => ({
                   cargas: s.cargas,
                   repeticoes: s.repeticoes,
                 })),
@@ -247,27 +359,36 @@ export default function ExecutarTreinoScreen() {
             setTempo(0);
             router.replace({
               pathname: '/resumo-treino',
-              params: { treinoNome: treino.nome, duracao: String(tempo) },
+              params: {
+                treinoNome: treino.nome,
+                duracao: String(tempo),
+                recordesBatidos: JSON.stringify(recordesBatidosDetalhe),
+              },
             });
           },
         },
-      ]
+      ],
     );
   };
 
-  const atualizarSerie = (exIndex: number, serIndex: number, campo: 'cargas' | 'repeticoes', valor: number | string) => {
+  const atualizarSerie = (
+    exIndex: number,
+    serIndex: number,
+    campo: 'cargas' | 'repeticoes',
+    valor: number | string,
+  ) => {
     let parsed: number;
     if (typeof valor === 'string') {
       parsed = parseFloat(valor.replace(',', '.')) || 0;
     } else {
       parsed = valor;
     }
-    setExerciciosExecucao(prev => {
+    setExerciciosExecucao((prev) => {
       const novos = [...prev];
       novos[exIndex] = {
         ...novos[exIndex],
-        series: novos[exIndex].series.map((s: any, i: number) =>
-          i === serIndex ? { ...s, [campo]: Math.max(0, parsed) } : s
+        series: novos[exIndex].series.map((s, i: number) =>
+          i === serIndex ? { ...s, [campo]: Math.max(0, parsed) } : s,
         ),
       };
       return novos;
@@ -275,7 +396,7 @@ export default function ExecutarTreinoScreen() {
   };
 
   const adicionarSerie = (exIndex: number) => {
-    setExerciciosExecucao(prev => {
+    setExerciciosExecucao((prev) => {
       const novos = [...prev];
       const ex = novos[exIndex];
       novos[exIndex] = {
@@ -287,7 +408,7 @@ export default function ExecutarTreinoScreen() {
   };
 
   const removerSerie = (exIndex: number) => {
-    setExerciciosExecucao(prev => {
+    setExerciciosExecucao((prev) => {
       const novos = [...prev];
       const ex = novos[exIndex];
       if (ex.series.length <= 1) return prev;
@@ -300,15 +421,15 @@ export default function ExecutarTreinoScreen() {
   };
 
   const marcarConcluida = (exIndex: number, serIndex: number) => {
-    setExerciciosExecucao(prev => {
+    setExerciciosExecucao((prev) => {
       const novos = [...prev];
       const ex = novos[exIndex];
       const serie = ex.series[serIndex];
       novos[exIndex] = {
         ...ex,
-        descansoRestante: serie.concluida ? 0 : (ex.descanso || 60),
-        series: ex.series.map((s: any, i: number) =>
-          i === serIndex ? { ...s, concluida: !s.concluida } : s
+        descansoRestante: serie.concluida ? 0 : ex.descanso || 60,
+        series: ex.series.map((s, i: number) =>
+          i === serIndex ? { ...s, concluida: !s.concluida } : s,
         ),
       };
       return novos;
@@ -322,8 +443,9 @@ export default function ExecutarTreinoScreen() {
 
   const salvarDescanso = () => {
     const novoValor = parseInt(valorDescanso, 10);
-    if (exEditandoDescanso === null || isNaN(novoValor) || novoValor < 0) return;
-    setExerciciosExecucao(prev => {
+    if (exEditandoDescanso === null || isNaN(novoValor) || novoValor < 0)
+      return;
+    setExerciciosExecucao((prev) => {
       const novos = [...prev];
       novos[exEditandoDescanso] = {
         ...novos[exEditandoDescanso],
@@ -365,22 +487,32 @@ export default function ExecutarTreinoScreen() {
         )}
       />
 
-      <TouchableOpacity style={styles.botaoFinalizar} onPress={finalizarTreino}>
+      <TouchableOpacity
+        style={[styles.botaoFinalizar, finalizando && { opacity: 0.5 }]}
+        onPress={finalizarTreino}
+        disabled={finalizando}
+      >
         <Ionicons name="stop-circle" size={24} color="#fff" />
         <Text style={styles.botaoFinalizarTexto}>Finalizar Treino</Text>
       </TouchableOpacity>
 
       <DetalhesExercicioModal
         exercicio={
-          exercicioDetalheIndex !== null && exerciciosExecucao[exercicioDetalheIndex]
-            ? ([...exerciciosData, ...exerciciosCustom].find((e: any) => e.id === exerciciosExecucao[exercicioDetalheIndex].exercicioId) ?? null)
+          exercicioDetalheIndex !== null &&
+          exerciciosExecucao[exercicioDetalheIndex]
+            ? (find(exerciciosExecucao[exercicioDetalheIndex].exercicioId) ??
+              null)
             : null
         }
         visible={exercicioDetalheIndex !== null}
         onClose={() => setExercicioDetalheIndex(null)}
       />
 
-      <Modal visible={exEditandoDescanso !== null} transparent animationType="fade">
+      <Modal
+        visible={exEditandoDescanso !== null}
+        transparent
+        animationType="fade"
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitulo}>Tempo de Descanso</Text>
@@ -401,7 +533,10 @@ export default function ExecutarTreinoScreen() {
               >
                 <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBotaoSalvar} onPress={salvarDescanso}>
+              <TouchableOpacity
+                style={styles.modalBotaoSalvar}
+                onPress={salvarDescanso}
+              >
                 <Text style={styles.modalBotaoSalvarTexto}>Salvar</Text>
               </TouchableOpacity>
             </View>

@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos } from '../../src/hooks/useTreinos';
-
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_PRIMARIA = '#6C63FF';
+import { COR_FUNDO, COR_CARD, COR_PRIMARIA } from '../../src/utils/theme';
 
 export default function IniciarTreinoScreen() {
   const router = useRouter();
@@ -15,7 +17,9 @@ export default function IniciarTreinoScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Selecione o treino para iniciar</Text>
-      <Text style={styles.subtitulo}>{treinos.length} treino(s) disponível(is)</Text>
+      <Text style={styles.subtitulo}>
+        {treinos.length} treino(s) disponível(is)
+      </Text>
 
       <FlatList
         data={treinos}
@@ -32,8 +36,15 @@ export default function IniciarTreinoScreen() {
             </View>
             <View style={styles.cardInfo}>
               <Text style={styles.cardNome}>{item.nome}</Text>
-              {item.diaSemana && (Array.isArray(item.diaSemana) ? item.diaSemana.length > 0 : true) ? (
-                <Text style={styles.cardDia}>{Array.isArray(item.diaSemana) ? item.diaSemana.join(', ') : item.diaSemana}</Text>
+              {item.diaSemana &&
+              (Array.isArray(item.diaSemana)
+                ? item.diaSemana.length > 0
+                : true) ? (
+                <Text style={styles.cardDia}>
+                  {Array.isArray(item.diaSemana)
+                    ? item.diaSemana.join(', ')
+                    : item.diaSemana}
+                </Text>
               ) : null}
               <Text style={styles.cardExCount}>
                 {item.exercicios.length} exercício(s)

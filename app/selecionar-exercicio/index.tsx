@@ -6,18 +6,18 @@ import ListaExercicios from '../../src/components/ListaExercicios';
 import DetalhesExercicioModal from '../../src/components/DetalhesExercicioModal';
 import { confirmarSelecao } from '../../src/utils/selecionarExercicioState';
 import { Exercicio } from '../../src/types';
-
-const COR_FUNDO = '#1a1a2e';
-const COR_PRIMARIA = '#6C63FF';
+import { COR_FUNDO, COR_PRIMARIA } from '../../src/utils/theme';
 
 export default function SelecionarExercicioScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [exercicioDetalhe, setExercicioDetalhe] = useState<Exercicio | null>(null);
+  const [exercicioDetalhe, setExercicioDetalhe] = useState<Exercicio | null>(
+    null,
+  );
 
   const toggle = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -44,7 +44,9 @@ export default function SelecionarExercicioScreen() {
             activeOpacity={0.7}
           >
             <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.headerBotaoTexto}>Adicionar ({selectedIds.size})</Text>
+            <Text style={styles.headerBotaoTexto}>
+              Adicionar ({selectedIds.size})
+            </Text>
           </TouchableOpacity>
         ) : null,
     });

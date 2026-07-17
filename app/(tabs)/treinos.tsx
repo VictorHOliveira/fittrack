@@ -1,26 +1,26 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinos } from '../../src/hooks/useTreinos';
 import { TreinoPreDefinido } from '../../src/types';
-import { listarTreinosPreDefinidos, jaImportouTreino } from '../../src/utils/storage';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-
-const NIVEL_CORES: Record<string, string> = {
-  iniciante: '#4CAF50',
-  intermediario: '#ff9800',
-  avancado: '#ff6b6b',
-};
-
-const NIVEL_ICONS: Record<string, string> = {
-  iniciante: 'leaf',
-  intermediario: 'flame',
-  avancado: 'trophy',
-};
+import {
+  listarTreinosPreDefinidos,
+  jaImportouTreino,
+} from '../../src/utils/storage';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  NIVEL_CORES,
+  NIVEL_ICONS,
+} from '../../src/utils/theme';
 
 export default function TreinosScreen() {
   const router = useRouter();
@@ -54,7 +54,10 @@ export default function TreinosScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => router.push('/')} style={styles.botaoVoltar}>
+          <TouchableOpacity
+            onPress={() => router.push('/')}
+            style={styles.botaoVoltar}
+          >
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.titulo}>Meus Treinos</Text>
@@ -71,7 +74,9 @@ export default function TreinosScreen() {
         <View style={styles.vazio}>
           <Ionicons name="barbell-outline" size={64} color="#444" />
           <Text style={styles.vazioTexto}>Nenhum treino criado</Text>
-          <Text style={styles.vazioSubtexto}>Crie um treino ou importe um modelo pronto abaixo</Text>
+          <Text style={styles.vazioSubtexto}>
+            Crie um treino ou importe um modelo pronto abaixo
+          </Text>
         </View>
       )}
 
@@ -95,15 +100,29 @@ export default function TreinosScreen() {
                           <Text style={styles.cardNome}>{item.nome}</Text>
                           <Text style={styles.cardDesc}>
                             {item.exercicios.length} exercício(s)
-                            {item.diaSemana && (Array.isArray(item.diaSemana) ? item.diaSemana.length > 0 : true) ? ` • ${Array.isArray(item.diaSemana) ? item.diaSemana.join(', ') : item.diaSemana}` : ''}
+                            {item.diaSemana &&
+                            (Array.isArray(item.diaSemana)
+                              ? item.diaSemana.length > 0
+                              : true)
+                              ? ` • ${Array.isArray(item.diaSemana) ? item.diaSemana.join(', ') : item.diaSemana}`
+                              : ''}
                           </Text>
                         </View>
                         <View style={styles.cardAcoes}>
                           <TouchableOpacity
-                            onPress={() => router.push({ pathname: '/criar-treino', params: { id: item.id } })}
+                            onPress={() =>
+                              router.push({
+                                pathname: '/criar-treino',
+                                params: { id: item.id },
+                              })
+                            }
                             style={styles.botaoEditar}
                           >
-                            <Ionicons name="pencil" size={18} color={COR_PRIMARIA} />
+                            <Ionicons
+                              name="pencil"
+                              size={18}
+                              color={COR_PRIMARIA}
+                            />
                           </TouchableOpacity>
                           <TouchableOpacity
                             onPress={() => deletar(item.id)}
@@ -121,7 +140,9 @@ export default function TreinosScreen() {
 
             <View style={styles.secao}>
               <Text style={styles.secaoTitulo}>Treinos Prontos</Text>
-              <Text style={styles.secaoSubtitulo}>Modelos prontos para importar</Text>
+              <Text style={styles.secaoSubtitulo}>
+                Modelos prontos para importar
+              </Text>
 
               <View style={styles.niveisGrid}>
                 {preDefinidos.map((item) => {
@@ -130,22 +151,42 @@ export default function TreinosScreen() {
                   return (
                     <TouchableOpacity
                       key={item.id}
-                      style={[styles.nivelCard, jaImp && styles.nivelCardImportado]}
-                      onPress={() => router.push({ pathname: '/treino-predefinido', params: { id: item.id } })}
+                      style={[
+                        styles.nivelCard,
+                        jaImp && styles.nivelCardImportado,
+                      ]}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/treino-predefinido',
+                          params: { id: item.id },
+                        })
+                      }
                     >
-                      <View style={[styles.nivelIcone, { backgroundColor: cor + '20' }]}>
+                      <View
+                        style={[
+                          styles.nivelIcone,
+                          { backgroundColor: cor + '20' },
+                        ]}
+                      >
                         <Ionicons
                           name={(NIVEL_ICONS[item.nivel] as any) || 'fitness'}
                           size={28}
                           color={cor}
                         />
                       </View>
-                      <Text style={styles.nivelNome} numberOfLines={2}>{item.nome}</Text>
-                      <Text style={styles.nivelInfo}>{item.frequenciaSemanal}x/semana • ~{item.duracaoEstimada}min</Text>
+                      <Text style={styles.nivelNome} numberOfLines={2}>
+                        {item.nome}
+                      </Text>
+                      <Text style={styles.nivelInfo}>
+                        {item.frequenciaSemanal}x/semana • ~
+                        {item.duracaoEstimada}min
+                      </Text>
                       {jaImp && (
                         <View style={styles.importadoBadge}>
                           <Ionicons name="checkmark" size={12} color="#fff" />
-                          <Text style={styles.importadoBadgeTexto}>Importado</Text>
+                          <Text style={styles.importadoBadgeTexto}>
+                            Importado
+                          </Text>
                         </View>
                       )}
                     </TouchableOpacity>

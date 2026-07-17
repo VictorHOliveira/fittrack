@@ -1,10 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CardBase from './CardBase';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
+import { COR_CARD, COR_SUCESSO } from '../../utils/theme';
 
 interface RecordeItem {
   exercicioNome: string;
@@ -28,13 +25,16 @@ export default function CardRecordes(props: Props) {
       {props.recordes.length > 0 ? (
         <>
           <Text style={styles.subtitulo}>
-            Você bateu {props.recordes.length} recorde{props.recordes.length > 1 ? 's' : ''} neste treino!
+            Você bateu {props.recordes.length} recorde
+            {props.recordes.length > 1 ? 's' : ''} neste treino!
           </Text>
           {props.recordes.map((r, i) => (
             <View key={i} style={styles.recordeRow}>
               <View style={styles.recordeHeader}>
                 <Ionicons name="flame" size={16} color="#FFD700" />
-                <Text style={styles.recordeNome} numberOfLines={1}>{r.exercicioNome}</Text>
+                <Text style={styles.recordeNome} numberOfLines={1}>
+                  {r.exercicioNome}
+                </Text>
               </View>
               <View style={styles.recordeValores}>
                 <Text style={styles.recordeAntes}>{r.cargaAntiga} kg</Text>
@@ -59,18 +59,52 @@ export default function CardRecordes(props: Props) {
 
 const styles = StyleSheet.create({
   header: { alignItems: 'center', marginBottom: 12 },
-  titulo: { fontSize: 16, color: '#fff', fontWeight: 'bold', letterSpacing: 2, marginTop: 6 },
-  subtitulo: { fontSize: 12, color: '#aaa', textAlign: 'center', marginBottom: 16 },
-  recordeRow: {
-    backgroundColor: COR_CARD, borderRadius: 12, padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: '#333',
+  titulo: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+    letterSpacing: 2,
+    marginTop: 6,
   },
-  recordeHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  subtitulo: {
+    fontSize: 12,
+    color: '#aaa',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  recordeRow: {
+    backgroundColor: COR_CARD,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  recordeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
   recordeNome: { fontSize: 14, color: '#fff', fontWeight: '600', flex: 1 },
-  recordeValores: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 22 },
-  recordeAntes: { fontSize: 13, color: '#666', textDecorationLine: 'line-through' },
+  recordeValores: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 22,
+  },
+  recordeAntes: {
+    fontSize: 13,
+    color: '#666',
+    textDecorationLine: 'line-through',
+  },
   recordeAgora: { fontSize: 15, color: COR_SUCESSO, fontWeight: 'bold' },
   recordeReps: { fontSize: 12, color: '#888' },
   semRecordes: { alignItems: 'center', gap: 10, paddingVertical: 24 },
-  semRecordesTexto: { fontSize: 13, color: '#666', textAlign: 'center', fontStyle: 'italic' },
+  semRecordesTexto: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
 });

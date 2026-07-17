@@ -3,6 +3,7 @@ const path = require('path');
 
 const APP_JSON = path.resolve(__dirname, '..', 'app.json');
 const BUILD_GRADLE = path.resolve(__dirname, '..', 'android', 'app', 'build.gradle');
+const PACKAGE_JSON = path.resolve(__dirname, '..', 'package.json');
 
 // --- app.json ---
 const app = JSON.parse(fs.readFileSync(APP_JSON, 'utf8'));
@@ -14,6 +15,12 @@ const newVersion = parts.join('.');
 app.expo.version = newVersion;
 fs.writeFileSync(APP_JSON, JSON.stringify(app, null, 2) + '\n');
 console.log(`app.json version → ${newVersion}`);
+
+// --- package.json ---
+const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf8'));
+pkg.version = newVersion;
+fs.writeFileSync(PACKAGE_JSON, JSON.stringify(pkg, null, 2) + '\n');
+console.log(`package.json version → ${newVersion}`);
 
 // --- build.gradle ---
 let gradle = fs.readFileSync(BUILD_GRADLE, 'utf8');

@@ -1,31 +1,35 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
-import { carregarPerfil, carregarHistorico } from '../../src/services/firestoreService';
+import {
+  carregarPerfil,
+  carregarHistorico,
+} from '../../src/services/firestoreService';
 import { PerfilUsuario, TreinoCompleto } from '../../src/types';
-import { carregarExerciciosPersonalizados } from '../../src/services/firestoreService';
-import exerciciosData from '../../src/data/exercicios.json';
-
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_PRIMARIA = '#6C63FF';
-
-const exercicioNomeMap: Record<string, string> = {};
-exerciciosData.forEach((e: any) => { exercicioNomeMap[e.id] = e.nome; });
-
-function formatarDuracao(segundos: number): string {
-  const mins = Math.floor(segundos / 60);
-  const secs = segundos % 60;
-  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-}
+import { COR_FUNDO, COR_CARD, COR_PRIMARIA } from '../../src/utils/theme';
+import { useExercicios } from '../../src/hooks/useExercicios';
+import { formatarDuracao, formatarDataLonga } from '../../src/utils/format';
+import {
+  calcularVolumeExercicio,
+  calcularSeriesExercicio,
+} from '../../src/utils/stats';
 
 export default function ResumoTreinoScreen() {
-  const { treinoNome, duracao } = useLocalSearchParams<{
+  const { treinoNome, duracao, recordesBatidos } = useLocalSearchParams<{
     treinoNome: string;
     duracao: string;
+    recordesBatidos?: string;
   }>();
 
   const navigation = useNavigation();
@@ -35,14 +39,7 @@ export default function ResumoTreinoScreen() {
   const [treino, setTreino] = useState<TreinoCompleto | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [compartilhando, setCompartilhando] = useState(false);
-  const [customLoaded, setCustomLoaded] = useState(false);
-
-  useEffect(() => {
-    carregarExerciciosPersonalizados().then(custom => {
-      custom.forEach(e => { exercicioNomeMap[e.id] = e.nome; });
-      setCustomLoaded(true);
-    });
-  }, []);
+  const { getNome } = useExercicios();
 
   useEffect(() => {
     (async () => {
@@ -65,10 +62,16 @@ export default function ResumoTreinoScreen() {
     if (compartilhando) return;
     try {
       setCompartilhando(true);
-      const uri = await captureRef(scrollRef.current, { format: 'png', quality: 0.9 });
+      const uri = await captureRef(scrollRef.current, {
+        format: 'png',
+        quality: 0.9,
+      });
       if (!uri) throw new Error('Falha ao capturar');
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Compartilhamento indisponível', 'Seu dispositivo não suporta compartilhamento.');
+        Alert.alert(
+          'Compartilhamento indisponível',
+          'Seu dispositivo não suporta compartilhamento.',
+        );
         return;
       }
       await Sharing.shareAsync(uri, {
@@ -76,7 +79,7 @@ export default function ResumoTreinoScreen() {
         dialogTitle: 'Compartilhar Treino',
       });
       router.push('/');
-    } catch (e) {
+    } catch {
       Alert.alert('Erro', 'Não foi possível compartilhar o treino.');
     } finally {
       setCompartilhando(false);
@@ -86,7 +89,11 @@ export default function ResumoTreinoScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={handleShare} style={styles.headerBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={handleShare}
+          style={styles.headerBtn}
+          activeOpacity={0.7}
+        >
           <Ionicons name="share-outline" size={22} color="#fff" />
         </TouchableOpacity>
       ),
@@ -102,15 +109,16 @@ export default function ResumoTreinoScreen() {
   }
 
   const exercicios = treino?.exercicios || [];
-  const totalSeries = exercicios.reduce((acc, ex) => acc + ex.series.length, 0);
+  const totalSeries = calcularSeriesExercicio(exercicios);
   const totalExercicios = exercicios.length;
-  const volumeTotal = exercicios.reduce(
-    (acc, ex) => acc + ex.series.reduce((s, serie) => s + serie.cargas * serie.repeticoes, 0),
-    0,
-  );
+  const volumeTotal = calcularVolumeExercicio(exercicios);
 
   return (
-    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.concluidoSection}>
         <View style={styles.checkIcon}>
           <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
@@ -118,7 +126,8 @@ export default function ResumoTreinoScreen() {
         <Text style={styles.concluidoLabel}>TREINO CONCLUÍDO</Text>
         <Text style={styles.nomeUsuario}>{perfil?.nome || 'Atleta'}</Text>
         <Text style={styles.meta}>
-          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} • {formatarDuracao(Number(duracao))}
+          {formatarDataLonga(new Date().toISOString())} •{' '}
+          {formatarDuracao(Number(duracao))}
         </Text>
       </View>
 
@@ -144,11 +153,16 @@ export default function ResumoTreinoScreen() {
         <Text style={styles.sectionTitulo}>EXERCÍCIOS REALIZADOS</Text>
 
         {exercicios.map((ex, i) => {
-          const nome = exercicioNomeMap[ex.exercicioId] || ex.exercicioId;
-          const volumeEx = ex.series.reduce((s, serie) => s + serie.cargas * serie.repeticoes, 0);
+          const nome = getNome(ex.exercicioId) || ex.exercicioId;
+          const volumeEx = ex.series.reduce(
+            (s, serie) => s + serie.cargas * serie.repeticoes,
+            0,
+          );
           return (
             <View key={i} style={styles.exRow}>
-              <Text style={styles.exNome} numberOfLines={1}>{nome}</Text>
+              <Text style={styles.exNome} numberOfLines={1}>
+                {nome}
+              </Text>
               <Text style={styles.exVolume}>{volumeEx} kg</Text>
             </View>
           );
@@ -157,7 +171,16 @@ export default function ResumoTreinoScreen() {
 
       <TouchableOpacity
         style={styles.botaoGaleria}
-        onPress={() => router.push({ pathname: '/compartilhar', params: { treinoNome: treinoNome || '', duracao: duracao || '0' } })}
+        onPress={() =>
+          router.push({
+            pathname: '/compartilhar',
+            params: {
+              treinoNome: treinoNome || '',
+              duracao: duracao || '0',
+              recordesBatidos: recordesBatidos || '',
+            },
+          })
+        }
         activeOpacity={0.7}
       >
         <Ionicons name="images-outline" size={20} color={COR_PRIMARIA} />
@@ -273,12 +296,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   botaoGaleria: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: COR_CARD, borderRadius: 14, padding: 16, marginBottom: 16,
-    borderWidth: 1, borderColor: COR_PRIMARIA + '40',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COR_CARD,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COR_PRIMARIA + '40',
   },
   botaoGaleriaTexto: {
-    fontSize: 14, color: COR_PRIMARIA, fontWeight: '600', flex: 1, textAlign: 'center',
+    fontSize: 14,
+    color: COR_PRIMARIA,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
   },
   branding: {
     flexDirection: 'row',

@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TreinoCompleto } from '../../types';
-import { carregarExerciciosPersonalizados } from '../../services/firestoreService';
-import exerciciosData from '../../data/exercicios.json';
-
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
-
-const exercicioNomeMap: Record<string, string> = {};
-exerciciosData.forEach((e: any) => { exercicioNomeMap[e.id] = e.nome; });
+import { COR_FUNDO, COR_CARD, COR_SUCESSO } from '../../utils/theme';
+import { formatarDuracaoMinutos } from '../../utils/format';
+import { useExercicios } from '../../hooks/useExercicios';
 
 interface Props {
   visible: boolean;
@@ -30,23 +30,16 @@ function formatarDataBR(dataISO: string): string {
   });
 }
 
-function formatarDuracao(minutos: number): string {
-  if (minutos < 60) return `${minutos}min`;
-  const h = Math.floor(minutos / 60);
-  const m = minutos % 60;
-  return m > 0 ? `${h}h ${m}min` : `${h}h`;
-}
-
-export default function DetalheTreinoModal({ visible, data, historico, onClose }: Props) {
-  const treinosDoDia = historico.filter(t => t.dataExecucao.split('T')[0] === data);
-  const [customLoaded, setCustomLoaded] = useState(false);
-
-  useEffect(() => {
-    carregarExerciciosPersonalizados().then(custom => {
-      custom.forEach(e => { exercicioNomeMap[e.id] = e.nome; });
-      setCustomLoaded(true);
-    });
-  }, []);
+export default function DetalheTreinoModal({
+  visible,
+  data,
+  historico,
+  onClose,
+}: Props) {
+  const treinosDoDia = historico.filter(
+    (t) => t.dataExecucao.split('T')[0] === data,
+  );
+  const { getNome } = useExercicios();
 
   return (
     <Modal
@@ -56,7 +49,11 @@ export default function DetalheTreinoModal({ visible, data, historico, onClose }
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View style={styles.modal}>
           <View style={styles.header}>
             <View style={styles.headerInfo}>
@@ -68,7 +65,10 @@ export default function DetalheTreinoModal({ visible, data, historico, onClose }
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.conteudo}
+            showsVerticalScrollIndicator={false}
+          >
             {treinosDoDia.length === 0 ? (
               <Text style={styles.semRegistro}>Nenhum treino neste dia.</Text>
             ) : (
@@ -76,11 +76,12 @@ export default function DetalheTreinoModal({ visible, data, historico, onClose }
                 <View key={ti} style={styles.treinoCard}>
                   <Text style={styles.treinoNome}>{treino.treino.nome}</Text>
                   <Text style={styles.treinoMeta}>
-                    {formatarDataBR(treino.dataExecucao)} • {formatarDuracao(treino.duracao)}
+                    {formatarDataBR(treino.dataExecucao)} •{' '}
+                    {formatarDuracaoMinutos(treino.duracao)}
                   </Text>
 
                   {treino.exercicios.map((ex, ei) => {
-                    const nomeEx = exercicioNomeMap[ex.exercicioId] || ex.exercicioId;
+                    const nomeEx = getNome(ex.exercicioId) || ex.exercicioId;
                     return (
                       <View key={ei} style={styles.exCard}>
                         <Text style={styles.exNome}>{nomeEx}</Text>
@@ -92,8 +93,12 @@ export default function DetalheTreinoModal({ visible, data, historico, onClose }
                         {ex.series.map((serie, si) => (
                           <View key={si} style={styles.exRow}>
                             <Text style={styles.exValor}>{si + 1}</Text>
-                            <Text style={styles.exValor}>{serie.cargas} kg</Text>
-                            <Text style={styles.exValor}>{serie.repeticoes}</Text>
+                            <Text style={styles.exValor}>
+                              {serie.cargas} kg
+                            </Text>
+                            <Text style={styles.exValor}>
+                              {serie.repeticoes}
+                            </Text>
                           </View>
                         ))}
                       </View>

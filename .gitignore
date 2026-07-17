@@ -39,3 +39,12 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Keystore
+*.keystore
+
+# Firebase
+google-services.json
+
+# Android local config
+/local.properties

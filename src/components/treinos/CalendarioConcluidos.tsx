@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TreinoCompleto } from '../../types';
-
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
-const COR_PRIMARIA = '#6C63FF';
+import { COR_CARD, COR_SUCESSO, COR_PRIMARIA } from '../../utils/theme';
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -25,8 +21,18 @@ function getPrimeiroDiaSemana(ano: number, mes: number): number {
 
 function formatarMes(ano: number, mes: number): string {
   const nomes = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
   return `${nomes[mes]} ${ano}`;
 }
@@ -36,7 +42,9 @@ export default function CalendarioConcluidos({ historico, onDayPress }: Props) {
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth());
 
-  const diasComTreino = new Set(historico.map(t => t.dataExecucao.split('T')[0]));
+  const diasComTreino = new Set(
+    historico.map((t) => t.dataExecucao.split('T')[0]),
+  );
   const hojeStr = hoje.toISOString().split('T')[0];
 
   const navegar = (diff: number) => {
@@ -103,8 +111,12 @@ export default function CalendarioConcluidos({ historico, onDayPress }: Props) {
                 onPress={() => onDayPress(diaStr)}
                 activeOpacity={0.6}
               >
-                <View style={[styles.diaCircle, ehHoje && styles.diaCircleHoje]}>
-                  <Text style={[styles.diaNumero, ehHoje && styles.diaNumeroHoje]}>
+                <View
+                  style={[styles.diaCircle, ehHoje && styles.diaCircleHoje]}
+                >
+                  <Text
+                    style={[styles.diaNumero, ehHoje && styles.diaNumeroHoje]}
+                  >
                     {dia}
                   </Text>
                 </View>

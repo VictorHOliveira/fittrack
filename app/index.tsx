@@ -3,9 +3,8 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/contexts/AuthContext';
 import { checkAndMigrate } from '../src/services/syncFirestore';
-
-const COR_FUNDO = '#1a1a2e';
-const COR_PRIMARIA = '#6C63FF';
+import { checkAndMigrateStorage } from '../src/utils/storage';
+import { COR_FUNDO, COR_PRIMARIA } from '../src/utils/theme';
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -13,11 +12,15 @@ export default function Index() {
   const migrated = useRef(false);
 
   useEffect(() => {
+    checkAndMigrateStorage();
+  }, []);
+
+  useEffect(() => {
     if (loading) return;
     if (user) {
       if (!migrated.current) {
         migrated.current = true;
-        checkAndMigrate(user.uid).catch(console.error);
+        checkAndMigrate(user.uid).catch(() => {});
       }
       router.replace('/(tabs)');
     } else {

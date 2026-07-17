@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ExercicioGif from '../ExercicioGif';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
+import { COR_PRIMARIA, COR_CARD, COR_SUCESSO } from '../../utils/theme';
 
 interface Serie {
   cargas: number;
@@ -28,7 +30,12 @@ interface ExercicioExecucao {
 interface Props {
   exercicio: ExercicioExecucao;
   exIndex: number;
-  onAtualizarSerie: (exIndex: number, serIndex: number, campo: 'cargas' | 'repeticoes', valor: number | string) => void;
+  onAtualizarSerie: (
+    exIndex: number,
+    serIndex: number,
+    campo: 'cargas' | 'repeticoes',
+    valor: number | string,
+  ) => void;
   onMarcarConcluida: (exIndex: number, serIndex: number) => void;
   onAdicionarSerie: (exIndex: number) => void;
   onRemoverSerie: (exIndex: number) => void;
@@ -37,20 +44,44 @@ interface Props {
   formatarDuracao: (s: number) => string;
 }
 
-export default function ExercicioExecucaoCard({ exercicio, exIndex, onAtualizarSerie, onMarcarConcluida, onAdicionarSerie, onRemoverSerie, onEditarDescanso, onDetalhe, formatarDuracao }: Props) {
+export default function ExercicioExecucaoCard({
+  exercicio,
+  exIndex,
+  onAtualizarSerie,
+  onMarcarConcluida,
+  onAdicionarSerie,
+  onRemoverSerie,
+  onEditarDescanso,
+  onDetalhe,
+  formatarDuracao,
+}: Props) {
   const nomeIcone = exercicio.icone || 'fitness';
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerTouchable} activeOpacity={0.7} onPress={onDetalhe} disabled={!onDetalhe}>
-          <ExercicioGif exercicioId={exercicio.exercicioId} icone={nomeIcone} corGrupo={exercicio.corGrupo || COR_PRIMARIA} size={36} borderRadius={10} />
+        <TouchableOpacity
+          style={styles.headerTouchable}
+          activeOpacity={0.7}
+          onPress={onDetalhe}
+          disabled={!onDetalhe}
+        >
+          <ExercicioGif
+            exercicioId={exercicio.exercicioId}
+            icone={nomeIcone}
+            corGrupo={exercicio.corGrupo || COR_PRIMARIA}
+            size={36}
+            borderRadius={10}
+          />
           <View style={styles.headerInfo}>
             <Text style={styles.nome}>{exercicio.nome}</Text>
             <Text style={styles.musculo}>{exercicio.musculo}</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.descansoBadge} onPress={() => onEditarDescanso(exIndex)}>
+        <TouchableOpacity
+          style={styles.descansoBadge}
+          onPress={() => onEditarDescanso(exIndex)}
+        >
           <Ionicons name="pause-circle" size={12} color="#ff9800" />
           <Text style={styles.descansoBadgeTexto}>
             {exercicio.descansoRestante > 0
@@ -69,63 +100,132 @@ export default function ExercicioExecucaoCard({ exercicio, exIndex, onAtualizarS
       </View>
 
       {exercicio.series.map((serie, serIndex) => {
-        const temAnterior = exercicio.anterior?.[serIndex] && exercicio.anterior[serIndex].cargas > 0;
+        const temAnterior =
+          exercicio.anterior?.[serIndex] &&
+          exercicio.anterior[serIndex].cargas > 0;
         return (
-        <View key={serIndex} style={[styles.serieRow, serie.concluida && styles.serieConcluida]}>
-          <Text style={styles.serieNumero}>{serIndex + 1}</Text>
+          <View
+            key={serIndex}
+            style={[styles.serieRow, serie.concluida && styles.serieConcluida]}
+          >
+            <Text style={styles.serieNumero}>{serIndex + 1}</Text>
 
-          <View style={styles.anteriorContainer}>
-            <Text style={styles.anteriorTexto}>
-              {temAnterior ? `${exercicio.anterior![serIndex].cargas}kg × ${exercicio.anterior![serIndex].repeticoes}` : '—'}
-            </Text>
+            <View style={styles.anteriorContainer}>
+              <Text style={styles.anteriorTexto}>
+                {temAnterior
+                  ? `${exercicio.anterior![serIndex].cargas}kg × ${exercicio.anterior![serIndex].repeticoes}`
+                  : '—'}
+              </Text>
+            </View>
+
+            <View style={styles.serieControles}>
+              <TouchableOpacity
+                onPress={() =>
+                  onAtualizarSerie(
+                    exIndex,
+                    serIndex,
+                    'cargas',
+                    serie.cargas - 2.5,
+                  )
+                }
+              >
+                <Ionicons name="remove-circle" size={24} color="#888" />
+              </TouchableOpacity>
+              <TextInput
+                style={styles.serieInput}
+                keyboardType="decimal-pad"
+                value={String(serie.cargas || '')}
+                onChangeText={(text) =>
+                  onAtualizarSerie(exIndex, serIndex, 'cargas', text)
+                }
+                onBlur={() =>
+                  onAtualizarSerie(
+                    exIndex,
+                    serIndex,
+                    'cargas',
+                    String(serie.cargas),
+                  )
+                }
+                selectTextOnFocus
+              />
+              <TouchableOpacity
+                onPress={() =>
+                  onAtualizarSerie(
+                    exIndex,
+                    serIndex,
+                    'cargas',
+                    serie.cargas + 2.5,
+                  )
+                }
+              >
+                <Ionicons name="add-circle" size={24} color="#888" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.serieControles}>
+              <TouchableOpacity
+                onPress={() =>
+                  onAtualizarSerie(
+                    exIndex,
+                    serIndex,
+                    'repeticoes',
+                    serie.repeticoes - 1,
+                  )
+                }
+              >
+                <Ionicons name="remove-circle" size={24} color="#888" />
+              </TouchableOpacity>
+              <Text style={styles.serieValor}>{serie.repeticoes}</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  onAtualizarSerie(
+                    exIndex,
+                    serIndex,
+                    'repeticoes',
+                    serie.repeticoes + 1,
+                  )
+                }
+              >
+                <Ionicons name="add-circle" size={24} color="#888" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => onMarcarConcluida(exIndex, serIndex)}
+            >
+              <Ionicons
+                name={serie.concluida ? 'checkmark-circle' : 'ellipse-outline'}
+                size={28}
+                color={serie.concluida ? COR_SUCESSO : '#555'}
+              />
+            </TouchableOpacity>
           </View>
-
-          <View style={styles.serieControles}>
-            <TouchableOpacity onPress={() => onAtualizarSerie(exIndex, serIndex, 'cargas', serie.cargas - 2.5)}>
-              <Ionicons name="remove-circle" size={24} color="#888" />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.serieInput}
-              keyboardType="decimal-pad"
-              value={String(serie.cargas || '')}
-              onChangeText={(text) => onAtualizarSerie(exIndex, serIndex, 'cargas', text)}
-              onBlur={() => onAtualizarSerie(exIndex, serIndex, 'cargas', String(serie.cargas))}
-              selectTextOnFocus
-            />
-            <TouchableOpacity onPress={() => onAtualizarSerie(exIndex, serIndex, 'cargas', serie.cargas + 2.5)}>
-              <Ionicons name="add-circle" size={24} color="#888" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.serieControles}>
-            <TouchableOpacity onPress={() => onAtualizarSerie(exIndex, serIndex, 'repeticoes', serie.repeticoes - 1)}>
-              <Ionicons name="remove-circle" size={24} color="#888" />
-            </TouchableOpacity>
-            <Text style={styles.serieValor}>{serie.repeticoes}</Text>
-            <TouchableOpacity onPress={() => onAtualizarSerie(exIndex, serIndex, 'repeticoes', serie.repeticoes + 1)}>
-              <Ionicons name="add-circle" size={24} color="#888" />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity onPress={() => onMarcarConcluida(exIndex, serIndex)}>
-            <Ionicons
-              name={serie.concluida ? 'checkmark-circle' : 'ellipse-outline'}
-              size={28}
-              color={serie.concluida ? COR_SUCESSO : '#555'}
-            />
-          </TouchableOpacity>
-        </View>
         );
       })}
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.footerBotao, exercicio.series.length <= 1 && styles.footerBotaoDesabilitado]}
+          style={[
+            styles.footerBotao,
+            exercicio.series.length <= 1 && styles.footerBotaoDesabilitado,
+          ]}
           onPress={() => onRemoverSerie(exIndex)}
           disabled={exercicio.series.length <= 1}
         >
-          <Ionicons name="remove-circle" size={18} color={exercicio.series.length <= 1 ? '#444' : '#ff6b6b'} />
-          <Text style={[styles.footerBotaoTexto, exercicio.series.length <= 1 && styles.footerBotaoTextoDesabilitado]}>Série</Text>
+          <Ionicons
+            name="remove-circle"
+            size={18}
+            color={exercicio.series.length <= 1 ? '#444' : '#ff6b6b'}
+          />
+          <Text
+            style={[
+              styles.footerBotaoTexto,
+              exercicio.series.length <= 1 &&
+                styles.footerBotaoTextoDesabilitado,
+            ]}
+          >
+            Série
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity

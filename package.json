@@ -1,6 +1,6 @@
 {
   "name": "appgymtraining",
-  "version": "1.0.0",
+  "version": "1.0.7",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -11,9 +11,8 @@
     "expo": "~57.0.4",
     "expo-audio": "~57.0.0",
     "expo-constants": "~57.0.3",
-    "expo-font": "~57.0.0",
-    "expo-linking": "~57.0.2",
-    "expo-notifications": "^57.0.3",
+    "expo-image-picker": "~57.0.5",
+    "expo-notifications": "~57.0.3",
     "expo-router": "~57.0.4",
     "expo-sharing": "~57.0.3",
     "expo-splash-screen": "~57.0.2",
@@ -21,15 +20,21 @@
     "react": "19.2.3",
     "react-native": "0.86.0",
     "react-native-chart-kit": "^7.0.2",
-    "react-native-reanimated": "4.5.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
     "react-native-svg": "^15.15.4",
-    "react-native-view-shot": "5.1.0",
-    "react-native-worklets": "^0.10.0"
+    "react-native-view-shot": "5.1.0"
   },
   "devDependencies": {
+    "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "jest-expo": "~57.0.2",
+    "patch-package": "^8.0.1",
+    "prettier": "^3.9.5",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -37,7 +42,25 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:release": "node scripts/bump-version.js && npx expo run:android --variant release"
+    "build:release": "node scripts/bump-version.js && npx expo run:android --variant release",
+    "lint": "npx expo lint",
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"app/**/*.{ts,tsx}\"",
+    "postinstall": "patch-package"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "node_modules/(?!(.pnpm|(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg))"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ]
   },
   "overrides": {
     "react-dom": "19.2.3"

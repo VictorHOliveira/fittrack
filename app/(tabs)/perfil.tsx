@@ -1,24 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+} from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
 import { PerfilUsuario } from '../../src/types';
-import { salvarPerfil, carregarPerfil, limparTodosDados } from '../../src/services/firestoreService';
+import {
+  salvarPerfil,
+  carregarPerfil,
+  limparTodosDados,
+} from '../../src/services/firestoreService';
 import { getAuth, getDb, USERS_COLLECTION } from '../../src/lib/firebase';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
-const COR_SUCESSO = '#4CAF50';
+import {
+  COR_PRIMARIA,
+  COR_FUNDO,
+  COR_CARD,
+  COR_SUCESSO,
+} from '../../src/utils/theme';
 
 const NIVEIS = [
   { valor: 'iniciante' as const, label: 'Iniciante', icon: 'leaf' as const },
-  { valor: 'intermediario' as const, label: 'Intermediário', icon: 'flame' as const },
+  {
+    valor: 'intermediario' as const,
+    label: 'Intermediário',
+    icon: 'flame' as const,
+  },
   { valor: 'avancado' as const, label: 'Avançado', icon: 'trophy' as const },
 ];
 
-const OBJETIVOS = ['Hipertrofia', 'Perda de peso', 'Força', 'Resistência', 'Saúde geral'];
+const OBJETIVOS = [
+  'Hipertrofia',
+  'Perda de peso',
+  'Força',
+  'Resistência',
+  'Saúde geral',
+];
 const DIAS_SEMANA = ['1', '2', '3', '4', '5', '6', '7'];
 
 export default function PerfilScreen() {
@@ -26,15 +53,15 @@ export default function PerfilScreen() {
   const [perfil, setPerfil] = useState<PerfilUsuario>({
     nome: '',
     idade: '',
-    peso: '',
     altura: '',
     nivel: 'iniciante',
     objetivo: [],
     diasPorSemana: '4',
-    gorduraCorporal: '',
   });
   const [salvou, setSalvou] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'checking' | 'synced' | 'offline' | 'error'>('checking');
+  const [syncStatus, setSyncStatus] = useState<
+    'checking' | 'synced' | 'offline' | 'error'
+  >('checking');
 
   useFocusEffect(
     useCallback(() => {
@@ -46,12 +73,12 @@ export default function PerfilScreen() {
             return;
           }
           const doc = await getDb().collection(USERS_COLLECTION).doc(uid).get();
-          setSyncStatus(doc.exists ? 'synced' : 'offline');
+          setSyncStatus(doc.exists() ? 'synced' : 'offline');
         } catch {
           setSyncStatus('error');
         }
       })();
-    }, [])
+    }, []),
   );
 
   useEffect(() => {
@@ -60,9 +87,11 @@ export default function PerfilScreen() {
       if (dados) {
         setPerfil({
           ...dados,
-          objetivo: Array.isArray(dados.objetivo) ? dados.objetivo :
-                    dados.objetivo ? [dados.objetivo] : [],
-          gorduraCorporal: dados.gorduraCorporal ?? '',
+          objetivo: Array.isArray(dados.objetivo)
+            ? dados.objetivo
+            : dados.objetivo
+              ? [dados.objetivo]
+              : [],
         });
       }
     })();
@@ -80,6 +109,28 @@ export default function PerfilScreen() {
 
   const getInicial = () => {
     return perfil.nome.trim() ? perfil.nome.trim()[0].toUpperCase() : '?';
+  };
+
+  const selecionarFoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permissão necessária',
+        'Precisamos de acesso à sua galeria para selecionar uma foto.',
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.3,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0].base64) {
+      const uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setPerfil({ ...perfil, fotoUri: uri });
+    }
   };
 
   const handleLimparDados = () => {
@@ -109,11 +160,11 @@ export default function PerfilScreen() {
                     }
                   },
                 },
-              ]
+              ],
             );
           },
         },
-      ]
+      ],
     );
   };
 
@@ -122,19 +173,34 @@ export default function PerfilScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scroll}
+      >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/')} style={styles.botaoVoltar}>
+          <TouchableOpacity
+            onPress={() => router.push('/')}
+            style={styles.botaoVoltar}
+          >
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.titulo}>Meu Perfil</Text>
         </View>
 
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarTexto}>{getInicial()}</Text>
-          </View>
-          <Text style={styles.avatarHint}>Preencha seus dados para personalizar a experiência</Text>
+          <TouchableOpacity style={styles.avatar} onPress={selecionarFoto}>
+            {perfil.fotoUri ? (
+              <Image source={{ uri: perfil.fotoUri }} style={styles.avatarFoto} />
+            ) : (
+              <Text style={styles.avatarTexto}>{getInicial()}</Text>
+            )}
+            <View style={styles.cameraIcon}>
+              <Ionicons name="camera" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.avatarHint}>
+            Toque na foto para alterar
+          </Text>
         </View>
 
         <Text style={styles.label}>Nome</Text>
@@ -146,66 +212,48 @@ export default function PerfilScreen() {
           placeholderTextColor="#555"
         />
 
-        <View style={styles.linha}>
-          <View style={styles.coluna}>
-            <Text style={styles.label}>Idade</Text>
-            <TextInput
-              style={styles.input}
-              value={perfil.idade}
-              onChangeText={(t) => setPerfil({ ...perfil, idade: t })}
-              placeholder="Ex: 25"
-              placeholderTextColor="#555"
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.coluna}>
-            <Text style={styles.label}>Peso (kg)</Text>
-            <TextInput
-              style={styles.input}
-              value={perfil.peso}
-              onChangeText={(t) => setPerfil({ ...perfil, peso: t })}
-              placeholder="Ex: 75"
-              placeholderTextColor="#555"
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
+        <Text style={styles.label}>Idade</Text>
+        <TextInput
+          style={styles.input}
+          value={perfil.idade}
+          onChangeText={(t) => setPerfil({ ...perfil, idade: t })}
+          placeholder="Ex: 25"
+          placeholderTextColor="#555"
+          keyboardType="numeric"
+        />
 
-        <View style={styles.linha}>
-          <View style={styles.coluna}>
-            <Text style={styles.label}>Altura (cm)</Text>
-            <TextInput
-              style={styles.input}
-              value={perfil.altura}
-              onChangeText={(t) => setPerfil({ ...perfil, altura: t })}
-              placeholder="Ex: 175"
-              placeholderTextColor="#555"
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.coluna}>
-            <Text style={styles.label}>Gordura Corporal (%)</Text>
-            <TextInput
-              style={styles.input}
-              value={perfil.gorduraCorporal}
-              onChangeText={(t) => setPerfil({ ...perfil, gorduraCorporal: t })}
-              placeholder="Ex: 18"
-              placeholderTextColor="#555"
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
+        <Text style={styles.label}>Altura (cm)</Text>
+        <TextInput
+          style={styles.input}
+          value={perfil.altura}
+          onChangeText={(t) => setPerfil({ ...perfil, altura: t })}
+          placeholder="Ex: 175"
+          placeholderTextColor="#555"
+          keyboardType="numeric"
+        />
 
         <Text style={styles.label}>Nível de Treino</Text>
         <View style={styles.niveisContainer}>
           {NIVEIS.map((n) => (
             <TouchableOpacity
               key={n.valor}
-              style={[styles.nivelBotao, perfil.nivel === n.valor && styles.nivelBotaoAtivo]}
+              style={[
+                styles.nivelBotao,
+                perfil.nivel === n.valor && styles.nivelBotaoAtivo,
+              ]}
               onPress={() => setPerfil({ ...perfil, nivel: n.valor })}
             >
-              <Ionicons name={n.icon} size={20} color={perfil.nivel === n.valor ? '#fff' : '#888'} />
-              <Text style={[styles.nivelTexto, perfil.nivel === n.valor && styles.nivelTextoAtivo]}>
+              <Ionicons
+                name={n.icon}
+                size={20}
+                color={perfil.nivel === n.valor ? '#fff' : '#888'}
+              />
+              <Text
+                style={[
+                  styles.nivelTexto,
+                  perfil.nivel === n.valor && styles.nivelTextoAtivo,
+                ]}
+              >
                 {n.label}
               </Text>
             </TouchableOpacity>
@@ -219,7 +267,10 @@ export default function PerfilScreen() {
             return (
               <TouchableOpacity
                 key={obj}
-                style={[styles.objetivoBotao, ativo && styles.objetivoBotaoAtivo]}
+                style={[
+                  styles.objetivoBotao,
+                  ativo && styles.objetivoBotaoAtivo,
+                ]}
                 onPress={() => {
                   const novo = ativo
                     ? perfil.objetivo.filter((o) => o !== obj)
@@ -227,7 +278,12 @@ export default function PerfilScreen() {
                   setPerfil({ ...perfil, objetivo: novo });
                 }}
               >
-                <Text style={[styles.objetivoTexto, ativo && styles.objetivoTextoAtivo]}>
+                <Text
+                  style={[
+                    styles.objetivoTexto,
+                    ativo && styles.objetivoTextoAtivo,
+                  ]}
+                >
                   {obj}
                 </Text>
               </TouchableOpacity>
@@ -240,10 +296,18 @@ export default function PerfilScreen() {
           {DIAS_SEMANA.map((d) => (
             <TouchableOpacity
               key={d}
-              style={[styles.diaBotao, perfil.diasPorSemana === d && styles.diaBotaoAtivo]}
+              style={[
+                styles.diaBotao,
+                perfil.diasPorSemana === d && styles.diaBotaoAtivo,
+              ]}
               onPress={() => setPerfil({ ...perfil, diasPorSemana: d })}
             >
-              <Text style={[styles.diaTexto, perfil.diasPorSemana === d && styles.diaTextoAtivo]}>
+              <Text
+                style={[
+                  styles.diaTexto,
+                  perfil.diasPorSemana === d && styles.diaTextoAtivo,
+                ]}
+              >
                 {d}x
               </Text>
             </TouchableOpacity>
@@ -251,7 +315,11 @@ export default function PerfilScreen() {
         </View>
 
         <TouchableOpacity style={styles.botaoSalvar} onPress={handleSalvar}>
-          <Ionicons name={salvou ? 'checkmark-circle' : 'save-outline'} size={22} color="#fff" />
+          <Ionicons
+            name={salvou ? 'checkmark-circle' : 'save-outline'}
+            size={22}
+            color="#fff"
+          />
           <Text style={styles.botaoSalvarTexto}>
             {salvou ? 'Salvo!' : 'Salvar Perfil'}
           </Text>
@@ -264,7 +332,9 @@ export default function PerfilScreen() {
           <Ionicons name="body" size={22} color={COR_PRIMARIA} />
           <View style={styles.botaoMedidasInfo}>
             <Text style={styles.botaoMedidasTexto}>Medidas Corporais</Text>
-            <Text style={styles.botaoMedidasSub}>Acompanhe peso, cintura, braço e mais</Text>
+            <Text style={styles.botaoMedidasSub}>
+              Acompanhe peso, cintura, braço e mais
+            </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#666" />
         </TouchableOpacity>
@@ -273,20 +343,29 @@ export default function PerfilScreen() {
           <View style={styles.syncRow}>
             <Ionicons
               name={
-                syncStatus === 'synced' ? 'cloud-done' :
-                syncStatus === 'checking' ? 'cloud-outline' : 'cloud-offline'
+                syncStatus === 'synced'
+                  ? 'cloud-done'
+                  : syncStatus === 'checking'
+                    ? 'cloud-outline'
+                    : 'cloud-offline'
               }
               size={16}
               color={
-                syncStatus === 'synced' ? COR_SUCESSO :
-                syncStatus === 'checking' ? '#888' : '#ff6b6b'
+                syncStatus === 'synced'
+                  ? COR_SUCESSO
+                  : syncStatus === 'checking'
+                    ? '#888'
+                    : '#ff6b6b'
               }
             />
             <Text style={styles.syncTexto}>
-              {syncStatus === 'synced' ? 'Sincronizado com a nuvem' :
-               syncStatus === 'checking' ? 'Verificando conexão...' :
-               syncStatus === 'offline' ? 'Modo offline' :
-               'Erro de conexão'}
+              {syncStatus === 'synced'
+                ? 'Sincronizado com a nuvem'
+                : syncStatus === 'checking'
+                  ? 'Verificando conexão...'
+                  : syncStatus === 'offline'
+                    ? 'Modo offline'
+                    : 'Erro de conexão'}
             </Text>
           </View>
           {syncStatus === 'offline' && (
@@ -294,7 +373,8 @@ export default function PerfilScreen() {
               style={styles.syncBotao}
               onPress={async () => {
                 try {
-                  const { checkAndMigrate } = await import('../../src/services/syncFirestore');
+                  const { checkAndMigrate } =
+                    await import('../../src/services/syncFirestore');
                   const uid = getAuth().currentUser?.uid;
                   if (uid) {
                     await checkAndMigrate(uid);
@@ -312,12 +392,17 @@ export default function PerfilScreen() {
           )}
         </View>
 
-        <TouchableOpacity style={styles.botaoLimpar} onPress={handleLimparDados}>
+        <TouchableOpacity
+          style={styles.botaoLimpar}
+          onPress={handleLimparDados}
+        >
           <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
           <Text style={styles.botaoLimparTexto}>Limpar Todos os Dados</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versao}>v{Constants.expoConfig?.version || '1.0.0'}</Text>
+        <Text style={styles.versao}>
+          v{Constants.expoConfig?.version || '1.0.0'}
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -360,11 +445,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    overflow: 'hidden',
+  },
+  avatarFoto: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   avatarTexto: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COR_PRIMARIA,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COR_FUNDO,
   },
   avatarHint: {
     fontSize: 12,

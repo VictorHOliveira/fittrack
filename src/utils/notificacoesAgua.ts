@@ -2,8 +2,10 @@ type NotificationsModule = any;
 
 const REGULAR_PREFIX = 'agua-regular';
 const NAG_PREFIX = 'agua-nag';
+const NAG_COOLDOWN_MS = 120_000;
 let _modPromise: Promise<NotificationsModule | null> | null = null;
 let _handlerSet = false;
+let _lastNagTime = 0;
 
 async function loadNotifications(): Promise<NotificationsModule | null> {
   if (_modPromise) return _modPromise;
@@ -49,8 +51,8 @@ export async function setupCategoriaTomei(): Promise<void> {
         options: { opensAppToForeground: false },
       },
     ]);
-  } catch (e) {
-    console.warn('Erro ao configurar categoria de notificação:', e);
+  } catch {
+    // Falha silenciosa ao configurar categoria
   }
 }
 
@@ -67,7 +69,9 @@ export async function pedirPermissaoNotificacao(): Promise<boolean> {
   return finalStatus === 'granted';
 }
 
-export async function agendarNotificacaoRegular(intervaloMinutos: number): Promise<void> {
+export async function agendarNotificacaoRegular(
+  intervaloMinutos: number,
+): Promise<void> {
   try {
     const mod = await loadNotifications();
     if (!mod) return;
@@ -87,13 +91,16 @@ export async function agendarNotificacaoRegular(intervaloMinutos: number): Promi
         repeats: true,
       },
     });
-  } catch (e) {
-    console.warn('Erro ao agendar notificação regular:', e);
+  } catch {
+    // Falha silenciosa ao agendar notificação
   }
 }
 
 export async function agendarNotificacaoNag(): Promise<void> {
   try {
+    if (Date.now() - _lastNagTime < NAG_COOLDOWN_MS) return;
+    _lastNagTime = Date.now();
+
     const mod = await loadNotifications();
     if (!mod) return;
 
@@ -112,8 +119,8 @@ export async function agendarNotificacaoNag(): Promise<void> {
         repeats: false,
       },
     });
-  } catch (e) {
-    console.warn('Erro ao agendar notificação nag:', e);
+  } catch {
+    // Falha silenciosa ao agendar nag
   }
 }
 
@@ -123,12 +130,14 @@ async function cancelarNotificacaoRegular(): Promise<void> {
     if (!mod) return;
 
     const scheduled: any[] = await mod.getAllScheduledNotificationsAsync();
-    const regular = scheduled.filter((n: any) => n.identifier === REGULAR_PREFIX);
+    const regular = scheduled.filter(
+      (n: any) => n.identifier === REGULAR_PREFIX,
+    );
     for (const n of regular) {
       await mod.cancelScheduledNotificationAsync(n.identifier);
     }
-  } catch (e) {
-    console.warn('Erro ao cancelar notificação regular:', e);
+  } catch {
+    // Falha silenciosa ao cancelar notificação
   }
 }
 
@@ -138,12 +147,14 @@ export async function cancelarTodasNags(): Promise<void> {
     if (!mod) return;
 
     const scheduled: any[] = await mod.getAllScheduledNotificationsAsync();
-    const nags = scheduled.filter((n: any) => n.identifier.startsWith(NAG_PREFIX));
+    const nags = scheduled.filter((n: any) =>
+      n.identifier.startsWith(NAG_PREFIX),
+    );
     for (const n of nags) {
       await mod.cancelScheduledNotificationAsync(n.identifier);
     }
-  } catch (e) {
-    console.warn('Erro ao cancelar nags:', e);
+  } catch {
+    // Falha silenciosa ao cancelar nags
   }
 }
 
@@ -152,38 +163,42 @@ export async function cancelarTodasNotificacoesAgua(): Promise<void> {
   await cancelarTodasNags();
 }
 
-export function iniciarListenerNag(
-  onTomei: () => void,
-): () => void {
-  let limpar: (() => void) | null = null;
+export function iniciarListenerNag(onTomei: () => void): () => void {
+  let mounted = true;
+  const cleanups: (() => void)[] = [];
 
   (async () => {
     const mod = await loadNotifications();
-    if (!mod) return;
+    if (!mod || !mounted) return;
 
-    const subscription = mod.addNotificationResponseReceivedListener((response: any) => {
-      if (response.actionIdentifier === 'tomei') {
-        onTomei();
-        mod.dismissNotificationAsync(response.notification.request.identifier);
-      }
-      if (response.notification.request.content.data?.tipo === 'nag') {
-        agendarNotificacaoNag();
-      }
-    });
+    const subscription = mod.addNotificationResponseReceivedListener(
+      (response: any) => {
+        if (response.actionIdentifier === 'tomei') {
+          onTomei();
+          mod.dismissNotificationAsync(
+            response.notification.request.identifier,
+          );
+        }
+        if (response.notification.request.content.data?.tipo === 'nag') {
+          agendarNotificacaoNag();
+        }
+      },
+    );
 
-    const receivedSubscription = mod.addNotificationReceivedListener((notification: any) => {
-      if (notification.request.content.data?.tipo === 'regular') {
-        agendarNotificacaoNag();
-      }
-    });
+    const receivedSubscription = mod.addNotificationReceivedListener(
+      (notification: any) => {
+        if (notification.request.content.data?.tipo === 'regular') {
+          agendarNotificacaoNag();
+        }
+      },
+    );
 
-    limpar = () => {
-      subscription.remove();
-      receivedSubscription.remove();
-    };
+    cleanups.push(() => subscription.remove());
+    cleanups.push(() => receivedSubscription.remove());
   })();
 
   return () => {
-    limpar?.();
+    mounted = false;
+    cleanups.forEach((fn) => fn());
   };
 }

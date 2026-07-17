@@ -11,8 +11,7 @@ export function useRecordes() {
       setCarregando(true);
       const dados = await carregarRecordes();
       setRecordes(dados);
-    } catch (e) {
-      console.warn('Erro ao carregar recordes:', e);
+    } catch {
       setRecordes({});
     } finally {
       setCarregando(false);
@@ -20,6 +19,7 @@ export function useRecordes() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar();
   }, [carregar]);
 

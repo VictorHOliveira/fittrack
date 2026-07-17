@@ -1,12 +1,16 @@
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ExercicioGif from './ExercicioGif';
 import { useRecordes } from '../hooks/useRecordes';
-
-const COR_PRIMARIA = '#6C63FF';
-const COR_FUNDO = '#1a1a2e';
-const COR_CARD = '#16213e';
+import { COR_PRIMARIA, COR_FUNDO, COR_CARD, ICON_MAP } from '../utils/theme';
 
 interface ExercicioData {
   id: string;
@@ -25,7 +29,11 @@ interface Props {
   onClose: () => void;
 }
 
-export default function DetalhesExercicioModal({ exercicio, visible, onClose }: Props) {
+export default function DetalhesExercicioModal({
+  exercicio,
+  visible,
+  onClose,
+}: Props) {
   const insets = useSafeAreaInsets();
   const { recordes } = useRecordes();
 
@@ -42,7 +50,11 @@ export default function DetalhesExercicioModal({ exercicio, visible, onClose }: 
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
         <View style={[styles.modal, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity style={styles.btnFechar} onPress={onClose}>
             <Ionicons name="close" size={24} color="#fff" />
@@ -65,7 +77,12 @@ export default function DetalhesExercicioModal({ exercicio, visible, onClose }: 
             <Text style={styles.nome}>{exercicio.nome}</Text>
 
             <View style={styles.musculoBadge}>
-              <View style={[styles.musculoDot, { backgroundColor: exercicio.corGrupo }]} />
+              <View
+                style={[
+                  styles.musculoDot,
+                  { backgroundColor: exercicio.corGrupo },
+                ]}
+              />
               <Text style={styles.musculoTexto}>{exercicio.musculo}</Text>
             </View>
 
@@ -95,21 +112,6 @@ export default function DetalhesExercicioModal({ exercicio, visible, onClose }: 
     </Modal>
   );
 }
-
-const ICON_MAP: Record<string, string> = {
-  'body': 'body',
-  'resize': 'resize',
-  'walk': 'walk',
-  'footsteps': 'footsteps',
-  'barbell': 'barbell',
-  'man': 'man',
-  'flash': 'flash',
-  'hand-left': 'hand-left',
-  'fitness': 'fitness',
-  'shield': 'shield',
-  'heart': 'heart',
-  'hand-right': 'hand-right',
-};
 
 const styles = StyleSheet.create({
   overlay: {

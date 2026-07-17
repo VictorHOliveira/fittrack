@@ -1,11 +1,14 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
-
-let _auth: any = null;
-function auth() {
-  if (!_auth) _auth = require('@react-native-firebase/auth').default();
-  return _auth;
-}
+import { getAuth } from '../lib/firebase';
+import { resetSyncFlags } from '../hooks/useTreinos';
 
 interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
@@ -15,14 +18,14 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((u) => {
+    const unsubscribe = getAuth().onAuthStateChanged((u) => {
       setUser(u);
       setLoading(false);
     });
@@ -30,15 +33,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    await auth().signInWithEmailAndPassword(email, password);
+    await getAuth().signInWithEmailAndPassword(email, password);
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
-    await auth().createUserWithEmailAndPassword(email, password);
+    await getAuth().createUserWithEmailAndPassword(email, password);
   }, []);
 
   const logout = useCallback(async () => {
-    await auth().signOut();
+    resetSyncFlags();
+    await getAuth().signOut();
   }, []);
 
   return (
@@ -48,6 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
+export function useAuth(): AuthContextType {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth deve ser usado dentro de AuthProvider');
+  return ctx;
 }
