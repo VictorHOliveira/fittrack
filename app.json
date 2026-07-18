@@ -2,7 +2,7 @@
   "expo": {
     "name": "Treino Mais",
     "slug": "AppGymTraining",
-      "version": "1.0.7",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -22,11 +22,6 @@
       "googleServicesFile": "./google-services.json",
       "versionCode": 5
     },
-    "splash": {
-      "backgroundColor": "#1a1a2e",
-      "image": "./assets/icon.png",
-      "resizeMode": "contain"
-    },
     "plugins": [
       "expo-router",
       "expo-status-bar",
@@ -38,11 +33,20 @@
         }
       ],
       "expo-sharing",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#1a1a2e"
+        }
+      ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "expo-audio",
-      "./plugins/withCmakeFix"
+      "./plugins/withCmakeFix",
+      "expo-font",
+      "expo-asset"
     ],
     "extra": {
       "router": {},
