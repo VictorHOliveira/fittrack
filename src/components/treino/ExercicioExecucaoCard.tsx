@@ -21,6 +21,7 @@ interface ExercicioExecucao {
   musculo: string;
   icone: string;
   corGrupo: string;
+  imageUrl?: string;
   descanso: number;
   descansoRestante: number;
   series: Serie[];
@@ -70,6 +71,7 @@ export default function ExercicioExecucaoCard({
             exercicioId={exercicio.exercicioId}
             icone={nomeIcone}
             corGrupo={exercicio.corGrupo || COR_PRIMARIA}
+            imageUrl={exercicio.imageUrl}
             size={36}
             borderRadius={10}
           />

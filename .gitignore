@@ -46,8 +46,5 @@ yarn-error.*
 # Keystore
 *.keystore
 
-# Firebase
-google-services.json
-
 # Android local config
 /local.properties

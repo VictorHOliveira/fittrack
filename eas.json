@@ -19,9 +19,6 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
-      },
-      "env": {
-        "GOOGLE_SERVICES_JSON": "@google-services.json"
       }
     }
   }

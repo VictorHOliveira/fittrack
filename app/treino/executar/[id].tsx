@@ -167,6 +167,7 @@ export default function ExecutarTreinoScreen() {
           musculo: exercicio?.musculo || '',
           icone: exercicio?.icone || 'fitness',
           corGrupo: exercicio?.corGrupo || COR_PRIMARIA,
+          imageUrl: exercicio?.imageUrl,
           descansoRestante: 0,
           anterior: historicoAnterior[ex.exercicioId] || [],
           series: ex.series.map((s) => ({

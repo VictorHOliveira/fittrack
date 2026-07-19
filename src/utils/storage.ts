@@ -13,7 +13,6 @@ import {
   Exercicio,
   ExercicioExecucao,
 } from '../types';
-import treinosPreDefinidos from '../data/treinos-pre-definidos.json';
 import { gerarId, formatarDuracao, formatarData } from './format';
 
 export { gerarId, formatarDuracao, formatarData };
@@ -159,7 +158,7 @@ export async function salvarHistoricoDeletados(
 export async function listarTreinosPreDefinidos(): Promise<
   TreinoPreDefinido[]
 > {
-  return treinosPreDefinidos as TreinoPreDefinido[];
+  return [];
 }
 
 export async function jaImportouTreino(

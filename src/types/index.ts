@@ -7,6 +7,7 @@ export interface Exercicio {
   descricao: string;
   equipamento?: string;
   personalizado?: boolean;
+  imageUrl?: string;
 }
 
 export interface Serie {
@@ -152,6 +153,7 @@ export interface ExercicioExecucao {
   musculo: string;
   icone: string;
   corGrupo: string;
+  imageUrl?: string;
   descanso: number;
   descansoRestante: number;
   anterior: { cargas: number; repeticoes: number }[];

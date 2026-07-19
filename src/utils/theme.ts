@@ -37,3 +37,24 @@ export const ICON_MAP: Record<string, string> = {
   heart: 'heart',
   'hand-right': 'hand-right',
 };
+
+export const MUSCLE_COLORS: Record<string, string> = {
+  Peito: '#e91e63',
+  Costas: '#2196f3',
+  Dorsais: '#2196f3',
+  'Meio-das-costas': '#2196f3',
+  'Inferior-das-costas': '#795548',
+  Quadriceps: '#4caf50',
+  Isquiotibiais: '#8bc34a',
+  Panturrilhas: '#689f38',
+  Ombros: '#ff9800',
+  Biceps: '#f44336',
+  Triceps: '#e91e63',
+  Abdominais: '#9c27b0',
+  Gluteos: '#e040fb',
+  Adutores: '#4caf50',
+  Abdutores: '#4caf50',
+  Antebracos: '#607d8b',
+  Trapezio: '#2196f3',
+  Pescoco: '#795548',
+};

@@ -155,26 +155,8 @@ export function calcularResumoPeriodo(
   };
 }
 
-export function getExercicioNome(
-  exercicioId: string,
-  customMap?: Record<string, string>,
-): string {
-  if (customMap?.[exercicioId]) return customMap[exercicioId];
-  return exerciciosData.find((e) => e.id === exercicioId)?.nome || exercicioId;
-}
-
-export function getExercicioMusculo(
-  exercicioId: string,
-  customMap?: Record<string, string>,
-): string {
-  if (customMap?.[exercicioId]) return '';
-  return exerciciosData.find((e) => e.id === exercicioId)?.musculo || '';
-}
-
-export function calcularVolumeExercicio(
-  exercicios: { series: { cargas: number; repeticoes: number }[] }[],
-): number {
-  return exercicios.reduce(
+export function calcularVolumeTreino(treino: TreinoCompleto): number {
+  return treino.exercicios.reduce(
     (acc, ex) =>
       acc +
       ex.series.reduce((s, serie) => s + serie.cargas * serie.repeticoes, 0),
@@ -182,24 +164,10 @@ export function calcularVolumeExercicio(
   );
 }
 
-export function calcularVolumeTreino(treino: TreinoCompleto): number {
-  return calcularVolumeExercicio(treino.exercicios);
-}
-
-export function calcularSeriesExercicio(
-  exercicios: { series: unknown[] }[],
-): number {
-  return exercicios.reduce((acc, ex) => acc + ex.series.length, 0);
-}
-
-export function listarExerciciosNoHistorico(
-  historico: TreinoCompleto[],
-): string[] {
-  const ids = new Set<string>();
-  for (const treino of historico) {
-    for (const ex of treino.exercicios) {
-      ids.add(ex.exercicioId);
-    }
-  }
-  return Array.from(ids);
-}
+export {
+  getExercicioNome,
+  getExercicioMusculo,
+  calcularVolumeExercicio,
+  calcularSeriesExercicio,
+  listarExerciciosNoHistorico,
+} from '../modules/exercises/utils/exerciseStats';
